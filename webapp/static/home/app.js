@@ -3031,17 +3031,8 @@ function submitApprovalModal() {
     
     localStorage.setItem('approval', JSON.stringify(approval));
     
-    // Mostrar confirmación
-    const now = new Date();
-    document.getElementById('approvalTimestampModal').textContent = 
-        `Firmado el ${now.toLocaleString('es-ES')} por ${clientName} (${clientPosition})`;
-    document.getElementById('approvalConfirmationModal').classList.remove('hidden');
-    
-    // Deshabilitar edición
-    document.getElementById('clientNameInput').disabled = true;
-    document.getElementById('clientPositionInput').disabled = true;
-    document.getElementById('approvalCheckboxModal').disabled = true;
-    canvasModal.style.pointerEvents = 'none';
+    // Refrescar el reporte para mostrar la versión firmada
+    showReportInModal(window.currentContractB);
     
     alert('✅ Reporte aprobado y firmado exitosamente');
 }
@@ -3993,9 +3984,66 @@ function downloadReportAsPdf() {
         };
     }
 
-    // Abrir ventana de impresión con el contenido del reporte
+    // Sincronizar valores de formularios antes de capturar el HTML
     const printContent = document.getElementById('reportModalContent');
     if (!printContent) return;
+
+    // Capturar valores actuales de inputs dentro del modal
+    const inputs = printContent.querySelectorAll('input, textarea, select');
+    const valueMap = {};
+    const checkedMap = {};
+    inputs.forEach(el => {
+        if (el.id) {
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                checkedMap[el.id] = el.checked;
+            } else {
+                valueMap[el.id] = el.value;
+            }
+        }
+    });
+
+    // Capturar firma del canvas como imagen
+    let signatureDataUrl = null;
+    const canvas = document.getElementById('signaturePadModal');
+    if (canvas && canvas.toDataURL) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            signatureDataUrl = canvas.toDataURL('image/png');
+        }
+    }
+
+    // Obtener el HTML base
+    let html = printContent.innerHTML;
+
+    // Reemplazar canvas por imagen con la firma dibujada (si existe)
+    if (signatureDataUrl) {
+        html = html.replace(
+            /<canvas[^>]*id="signaturePadModal"[^>]*><\/canvas>/,
+            `<img src="${signatureDataUrl}" alt="Firma del Cliente" style="max-height:160px;width:100%;object-fit:contain;border:2px solid #d1d5db;border-radius:8px;background:white;">`
+        );
+    }
+
+    // Inyectar valores en inputs (value="..." y checked)
+    Object.keys(valueMap).forEach(id => {
+        const val = valueMap[id];
+        const escaped = val.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        // Buscar input/textarea/select con ese id y agregar/actualizar value=
+        const re = new RegExp(`(<(?:input|textarea|select)[^>]*id="${id}"[^>]*)>`, 'i');
+        html = html.replace(re, (match, beforeTag) => {
+            if (beforeTag.includes('value="')) {
+                return match; // ya tiene value
+            }
+            return `${beforeTag} value="${escaped}">`;
+        });
+    });
+    Object.keys(checkedMap).forEach(id => {
+        if (checkedMap[id]) {
+            const re = new RegExp(`(<input[^>]*id="${id}"[^>]*)>`, 'i');
+            html = html.replace(re, '$1 checked="checked">');
+        }
+    });
+
+    // Abrir ventana de impresión
     const printWindow = window.open('', '', 'height=600,width=800');
     const headerText = document.querySelector('#reportModal h3')?.textContent || 'Reporte';
     printWindow.document.write('<html><head><title>' + headerText + '</title>');
@@ -4008,7 +4056,7 @@ function downloadReportAsPdf() {
     printWindow.document.write('pre{background:#f9fafb;padding:6px;font-size:11px;overflow-x:auto;border:1px solid #e5e7eb;border-radius:4px;font-family:monospace;white-space:pre-wrap;}');
     printWindow.document.write('</style></head><body>');
     printWindow.document.write('<div class="p-8">');
-    printWindow.document.write(printContent.innerHTML);
+    printWindow.document.write(html);
     printWindow.document.write('</div>');
     printWindow.document.write('</body></html>');
     printWindow.document.close();
