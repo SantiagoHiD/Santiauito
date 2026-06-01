@@ -66,6 +66,11 @@ function changeProject() {
 // ============================================================
 
 function switchMainTab(tabName) {
+    // Si hay texto en el editor al cambiar a historial, advertir
+    const inputEl = document.getElementById('requirementInput');
+    if (tabName === 'history' && inputEl && inputEl.value.trim().length > 0) {
+        showToast('El texto en el editor se perderá al cambiar de proyecto', 'warning', 3000);
+    }
     // Ocultar todas las secciones principales
     document.querySelectorAll('.main-content-section').forEach(section => {
         section.classList.add('hidden');
@@ -81,15 +86,17 @@ function switchMainTab(tabName) {
         loadHistoryPage();
     }
     
-    // Actualizar estilos de los tabs
+    // Actualizar estilos y aria-selected de los tabs
     document.querySelectorAll('[id^="main-tab-"]').forEach(btn => {
         btn.classList.remove('main-tab-active');
         btn.classList.add('main-tab-inactive');
+        btn.setAttribute('aria-selected', 'false');
     });
     
     const activeBtn = document.getElementById(`main-tab-${tabName}`);
     activeBtn.classList.remove('main-tab-inactive');
     activeBtn.classList.add('main-tab-active');
+    activeBtn.setAttribute('aria-selected', 'true');
 }
 
 function loadHistoryPage() {
@@ -568,12 +575,14 @@ function switchTab(tab) {
         btn.style.borderBottomColor = 'transparent';
         btn.style.color = '';
         btn.style.fontWeight = '';
+        btn.setAttribute('aria-selected', 'false');
     });
     const activeBtn = document.getElementById(`tab-${tab}`);
     activeBtn.classList.add('tab-active');
     activeBtn.style.borderBottomColor = color;
     activeBtn.style.color = color;
     activeBtn.style.fontWeight = '600';
+    activeBtn.setAttribute('aria-selected', 'true');
 
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
@@ -616,11 +625,17 @@ function switchTab(tab) {
 function updateCodeTabLabel() {
     const tabBtn = document.getElementById('tab-code');
     if (!tabBtn) return;
+    const ariaSelected = tabBtn.getAttribute('aria-selected');
+    const ariaControls = tabBtn.getAttribute('aria-controls');
+    const role = tabBtn.getAttribute('role');
     if (currentContractC) {
         tabBtn.innerHTML = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span><i class="fas fa-file-alt mr-2"></i>Revisión de Código';
     } else {
         tabBtn.innerHTML = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span><i class="fas fa-magic mr-2"></i>Generar Código';
     }
+    tabBtn.setAttribute('role', role || 'tab');
+    tabBtn.setAttribute('aria-selected', ariaSelected || 'false');
+    tabBtn.setAttribute('aria-controls', ariaControls || 'content-code');
 }
 
 function loadExample(num) {

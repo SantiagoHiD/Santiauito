@@ -8,17 +8,38 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="/components/user-menu.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        *:focus { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 4px; }
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        :root {
+            --color-primary: #6366f1;
+            --color-primary-dark: #4f46e5;
+            --color-purple: #a855f7;
+            --color-green: #10b981;
+            --color-gray-50: #f9fafb;
+            --color-gray-100: #f3f4f6;
+            --color-gray-200: #e5e7eb;
+            --color-gray-500: #6b7280;
+            --color-gray-700: #374151;
+            --color-gray-800: #1f2937;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+            --transition: 0.2s ease;
+        }
+        *:focus { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: 4px; }
         *:focus:not(:focus-visible) { outline: none; }
-        *:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 4px; }
+        *:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: 4px; }
         
         * {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Outfit', sans-serif;
         }
         
         .gradient-bg {
@@ -103,6 +124,16 @@
             border-color: rgba(255, 255, 255, 0.3);
         }
         
+        .skeleton {
+            background: linear-gradient(90deg, var(--color-gray-100) 25%, #e8e8e8 50%, var(--color-gray-100) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
         .loading-spinner {
             border: 3px solid #f3f4f6;
             border-top: 3px solid #667eea;
@@ -200,11 +231,11 @@
                     </div>
                     
                     <!-- Tabs Principales -->
-                    <div class="flex space-x-3">
-                        <button onclick="switchMainTab('generator')" id="main-tab-generator" class="main-tab-active px-6 py-3 rounded-lg font-semibold transition-all">
+                    <div class="flex space-x-3" role="tablist" aria-label="Navegación principal">
+                        <button onclick="switchMainTab('generator')" id="main-tab-generator" class="main-tab-active px-6 py-3 rounded-lg font-semibold transition-all" role="tab" aria-selected="true" aria-controls="main-content-generator">
                             <i class="fas fa-file-alt mr-2"></i>Nuevo Requerimiento
                         </button>
-                        <button onclick="switchMainTab('history')" id="main-tab-history" class="main-tab-inactive px-6 py-3 rounded-lg font-semibold transition-all">
+                        <button onclick="switchMainTab('history')" id="main-tab-history" class="main-tab-inactive px-6 py-3 rounded-lg font-semibold transition-all" role="tab" aria-selected="false" aria-controls="main-content-history">
                             <i class="fas fa-list mr-2"></i>Historias Generadas
                             <span id="historyBadge" class="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-white bg-opacity-30 text-white hidden">0</span>
                         </button>
@@ -219,31 +250,39 @@
     <!-- Main Content -->
     <main class="container mx-auto px-6 py-8">
         <!-- Contenedor del Generador -->
-        <div id="main-content-generator" class="main-content-section">
+        <div id="main-content-generator" class="main-content-section" role="tabpanel" aria-labelledby="main-tab-generator">
         <!-- Tabs -->
         <div class="bg-white rounded-lg shadow-md mb-6">
-            <div class="flex border-b">
-                <button onclick="switchTab('input')" id="tab-input" class="tab-active px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent" style="border-bottom-color: #64748b;">
+            <div class="flex border-b" role="tablist" aria-label="Módulos">
+                <button onclick="switchTab('input')" id="tab-input" class="tab-active px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent" style="border-bottom-color: #64748b;" role="tab" aria-selected="true" aria-controls="content-input">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#64748b;color:white;">M0</span>
                                     <i class="fas fa-edit mr-2"></i>Ingreso
                 </button>
-                <button onclick="switchTab('ambiguities')" id="tab-ambiguities" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
+                <button onclick="switchTab('ambiguities')" id="tab-ambiguities" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent" role="tab" aria-selected="false" aria-controls="content-ambiguities">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#6366f1;color:white;">M1</span>
                                     <i class="fas fa-exclamation-triangle mr-2"></i>Análisis
                 </button>
-                <button onclick="switchTab('results')" id="tab-results" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
+                <button onclick="switchTab('results')" id="tab-results" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent" role="tab" aria-selected="false" aria-controls="content-results">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#10b981;color:white;">M2</span>
                                     <i class="fas fa-check-circle mr-2"></i>Escenarios de Prueba
                 </button>
-                <button onclick="switchTab('code')" id="tab-code" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
+                <button onclick="switchTab('code')" id="tab-code" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent" role="tab" aria-selected="false" aria-controls="content-code">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span>
                     <i class="fas fa-magic mr-2"></i>Generar Código
                 </button>
             </div>
         </div>
 
+        <!-- Skeleton loading -->
+        <div id="skeleton-input" class="skeleton-tab hidden">
+            <div class="space-y-4 p-8">
+                <div class="skeleton h-8 w-48 mb-6"></div>
+                <div class="skeleton h-64 w-full mb-4"></div>
+                <div class="skeleton h-12 w-40"></div>
+            </div>
+        </div>
         <!-- Tab Content: Input -->
-        <div id="content-input" class="tab-content">
+        <div id="content-input" class="tab-content" role="tabpanel" aria-labelledby="tab-input">
             <div class="flex items-center space-x-2 mb-4 text-xs">
                 <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#64748b;color:white;">M0</span>
                 <span class="text-gray-500">Ingreso de Requerimientos</span>
@@ -493,7 +532,15 @@
         </div>
 
         <!-- Tab Content: Ambiguities -->
-        <div id="content-ambiguities" class="tab-content hidden">
+        <div id="skeleton-ambiguities" class="skeleton-tab hidden">
+            <div class="space-y-4 p-8">
+                <div class="skeleton h-8 w-64 mb-6"></div>
+                <div class="skeleton h-48 w-full mb-3"></div>
+                <div class="skeleton h-48 w-full mb-3"></div>
+                <div class="skeleton h-48 w-full"></div>
+            </div>
+        </div>
+        <div id="content-ambiguities" class="tab-content hidden" role="tabpanel" aria-labelledby="tab-ambiguities">
             <div class="flex items-center space-x-2 mb-4 text-xs">
                 <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#6366f1;color:white;">M1</span>
                 <span class="text-gray-400">|</span>
@@ -660,7 +707,17 @@
         </div>
 
         <!-- Tab Content: Results -->
-        <div id="content-results" class="tab-content hidden">
+        <div id="skeleton-results" class="skeleton-tab hidden">
+            <div class="space-y-4 p-8">
+                <div class="skeleton h-8 w-56 mb-6"></div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="skeleton h-24"></div>
+                    <div class="skeleton h-24"></div>
+                </div>
+                <div class="skeleton h-64 w-full"></div>
+            </div>
+        </div>
+        <div id="content-results" class="tab-content hidden" role="tabpanel" aria-labelledby="tab-results">
             <div class="flex items-center space-x-2 mb-4 text-xs">
                 <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#6366f1;color:white;">M1</span>
                 <span class="text-gray-400">+</span>
@@ -748,7 +805,19 @@
         </div>
 
         <!-- Tab Content: Código Generado (M3) — inline, no modal -->
-        <div id="content-code" class="tab-content hidden">
+        <div id="skeleton-code" class="skeleton-tab hidden">
+            <div class="space-y-4 p-8">
+                <div class="skeleton h-8 w-52 mb-6"></div>
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="skeleton h-20"></div>
+                    <div class="skeleton h-20"></div>
+                    <div class="skeleton h-20"></div>
+                    <div class="skeleton h-20"></div>
+                </div>
+                <div class="skeleton h-96 w-full"></div>
+            </div>
+        </div>
+        <div id="content-code" class="tab-content hidden" role="tabpanel" aria-labelledby="tab-code">
             <div class="flex items-center space-x-2 mb-4 text-xs">
                 <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#a855f7;color:white;">M3</span>
                 <span class="text-gray-400">|</span>
