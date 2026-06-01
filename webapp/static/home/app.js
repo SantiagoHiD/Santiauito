@@ -3187,7 +3187,8 @@ function updateCodeTabState() {
     }
 
     if (currentContractC) {
-        // Ya hay código generado — mostrar resultados
+        // Ya hay código generado — restaurar layout y mostrar resultados
+        restoreCodeTabLayout();
         showCodeResults(currentContractC);
         return;
     }

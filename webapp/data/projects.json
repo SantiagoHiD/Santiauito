@@ -1,10 +1,10 @@
 [
   {
-    "id": "259308e3-2852-4b66-b605-d59360d3ffa1",
-    "name": "Alva",
-    "description": "dsa",
-    "color": "purple",
-    "created_at": "2026-05-31T22:16:48.297601",
-    "updated_at": "2026-05-31T22:16:48.297608"
+    "id": "5d5e3edd-fa94-4286-8fbc-3e1e9255e1ff",
+    "name": "Gym",
+    "description": "Aplicación gym",
+    "color": "amber",
+    "created_at": "2026-06-01T10:41:59.395077",
+    "updated_at": "2026-06-01T10:41:59.395084"
   }
 ]

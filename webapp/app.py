@@ -256,10 +256,12 @@ from modulo3_code_generator.agente_v2_solucion import (
     construir_quality_report,
 )
 from modulo3_code_generator.agente_v3_solucion import (
+    construir_prompt_v3,
     extraer_scenario_ids,
     extraer_markers_de_tests,
     construir_matriz_trazabilidad,
     medir_coverage,
+    refinar_tests_v3,
 )
 from modulo2_test_architect.src.contract_b import (
     GherkinTestSuite,
@@ -451,36 +453,19 @@ def pipeline_m3_v3_webapp(contract_b_dict: dict, api_key: str) -> dict:
     todos_modulos = []
     todos_tests = []
 
-    # FASE 1: Generación de código (V1)
-    SCENARIO_MARKER_RE = re.compile(r'@pytest\.mark\.scenario\(')
+    # FASE 1: Generación de código (V1 con prompt V3)
     for feature in contract_b.features:
         try:
             if modelo_m3 and collection_m3:
                 patrones = buscar_patrones_similares(modelo_m3, collection_m3, feature, top_k=3)
             else:
                 patrones = []
-            system_prompt, user_message = construir_prompt(feature, patrones)
+            system_prompt, user_message = construir_prompt_v3(feature, patrones)
             raw_response = generar_con_groq(client, system_prompt, user_message)
             modulos, tests = parsear_respuesta(raw_response, feature)
 
-            # Post-procesar tests: inyectar markers @pytest.mark.scenario si faltan
-            feature_sids = {s.acceptance_criterion_id for s in feature.scenarios if s.acceptance_criterion_id}
-            for t in tests:
-                if not t.scenario_ids and not SCENARIO_MARKER_RE.search(t.source_code or ""):
-                    if feature_sids:
-                        t.scenario_ids = sorted(feature_sids)
-                # Si source_code no tiene markers pero tenemos scenario_ids, inyectarlos
-                if t.scenario_ids and not SCENARIO_MARKER_RE.search(t.source_code or ""):
-                    lines = t.source_code.split("\n")
-                    injected = False
-                    new_lines = []
-                    for line in lines:
-                        if not injected and (line.startswith("def test_") or line.startswith("class Test")):
-                            for sid in t.scenario_ids:
-                                new_lines.append(f'@pytest.mark.scenario("{sid}")')
-                            injected = True
-                        new_lines.append(line)
-                    t.source_code = "\n".join(new_lines)
+            # Post-procesar tests V3: inyectar markers y limpiar aserciones genericas
+            tests = refinar_tests_v3(tests)
 
             todos_modulos.extend(modulos)
             todos_tests.extend(tests)
@@ -488,8 +473,8 @@ def pipeline_m3_v3_webapp(contract_b_dict: dict, api_key: str) -> dict:
             print(f"  Error generando código para feature {feature.user_story_id}: {e}")
             continue
 
-    # Fallback: si Groq no devolvió código válido, generar módulos básicos por feature
-    if not todos_modulos:
+    # Fallback: si Groq no devolvió código ni tests válidos, generar módulos básicos por feature
+    if not todos_modulos and not todos_tests:
         print("  [FALLBACK] Groq no devolvió código válido — generando módulos básicos")
         for feature in contract_b.features:
             safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', feature.name.lower().replace(' ', '_'))
