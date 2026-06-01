@@ -32,7 +32,7 @@ const contractB = JSON.parse(localStorage.getItem('contractB') || 'null');
 const agentVersion = localStorage.getItem('agentVersion') || 'v1';
 
 if (!contractB) {
-    alert('No hay datos para generar el reporte. Redirigiendo...');
+    showToast('No hay datos para generar el reporte. Redirigiendo...', 'error');
     window.location.href = '/static/scenarios/';
 }
 
@@ -495,22 +495,22 @@ function submitApproval() {
     const approved = document.getElementById('approvalCheckbox').checked;
     
     if (!clientName) {
-        alert('Por favor ingrese el nombre del cliente');
+        showToast('Por favor ingrese el nombre del cliente', 'warning');
         return;
     }
     
     if (!clientPosition) {
-        alert('Por favor ingrese el cargo del cliente');
+        showToast('Por favor ingrese el cargo del cliente', 'warning');
         return;
     }
     
     if (!hasSignature) {
-        alert('Por favor firme el documento');
+        showToast('Por favor firme el documento', 'warning');
         return;
     }
     
     if (!approved) {
-        alert('Por favor marque la casilla de aprobación');
+        showToast('Por favor marque la casilla de aprobación', 'warning');
         return;
     }
     
@@ -538,11 +538,11 @@ function submitApproval() {
     document.getElementById('approvalCheckbox').disabled = true;
     canvas.style.pointerEvents = 'none';
     
-    alert('✅ Reporte aprobado y firmado exitosamente');
+    showToast('✅ Reporte aprobado y firmado exitosamente', 'success');
 }
 
 function downloadPDF() {
-    alert('Funcionalidad de descarga PDF - Use el botón Imprimir y seleccione "Guardar como PDF"');
+    showToast('Funcionalidad de descarga PDF - Use el botón Imprimir y seleccione "Guardar como PDF"', 'info');
 }
 
 // ========== M3: Code Generator ==========
@@ -590,7 +590,7 @@ const QUALITY_CHAR_NAMES = {
 
 async function generateCode() {
     if (!contractB) {
-        alert('No hay Contract B disponible para generar código');
+        showToast('No hay Contract B disponible para generar código', 'error');
         return;
     }
 
@@ -618,7 +618,7 @@ async function generateCode() {
     } catch (error) {
         hideLoading();
         console.error('Error generando código:', error);
-        alert('Error al generar código:\n' + error.message);
+        showToast('Error al generar código:\n' + error.message, 'error');
     }
 }
 
@@ -890,7 +890,7 @@ function closeCodeResultsModal() {
 
 function startCodeReview() {
     if (!currentContractC || !currentContractC.generated_code) {
-        alert('No hay código generado para revisar');
+        showToast('No hay código generado para revisar', 'error');
         return;
     }
 
@@ -961,7 +961,7 @@ function acceptCodeModule() {
 function commentCodeModule() {
     const notes = document.getElementById('codeReviewNotes').value.trim();
     if (!notes) {
-        alert('Por favor escribe tu observación');
+        showToast('Por favor escribe tu observación', 'warning');
         return;
     }
     const mod = codeReviewModules[currentCodeReviewIndex];
@@ -990,7 +990,7 @@ async function submitCodeReview() {
     const finalNotes = document.getElementById('codeReviewFinalNotes').value.trim();
 
     if (!reviewerName) {
-        alert('Por favor ingresa tu nombre');
+        showToast('Por favor ingresa tu nombre', 'warning');
         return;
     }
 
@@ -1020,14 +1020,14 @@ async function submitCodeReview() {
 
         const data = await response.json();
         if (data.success) {
-            alert(`✅ Revisión completada. Estado: ${data.review_status}`);
+            showToast(`✅ Revisión completada. Estado: ${data.review_status}`, 'error');
             document.getElementById('codeReviewModal').classList.add('hidden');
         } else {
             throw new Error(data.error || 'Error al guardar revisión');
         }
     } catch (error) {
         console.error('Error al guardar revisión:', error);
-        alert('Error al guardar revisión: ' + error.message);
+        showToast('Error al guardar revisión: ' + error.message, 'error');
     }
 }
 

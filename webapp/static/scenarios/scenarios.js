@@ -50,7 +50,7 @@ try {
 
 if (!contractA) {
     console.warn('No hay Contract A disponible');
-    alert('No hay Contract A disponible. Redirigiendo al Módulo 1...');
+    showToast('No hay Contract A disponible. Redirigiendo al Módulo 1...', 'error');
     window.location.href = '/';
 }
 
@@ -59,7 +59,7 @@ async function generateScenarios() {
     console.log('Contract A:', contractA);
     
     if (!contractA) {
-        alert('Error: No hay Contract A disponible');
+        showToast('Error: No hay Contract A disponible', 'error');
         return;
     }
     
@@ -88,7 +88,7 @@ async function generateScenarios() {
             const text = await response.text();
             console.error('Respuesta del servidor:', text);
             hideLoading();
-            alert('Error al parsear respuesta del servidor. Ver consola para detalles.');
+            showToast('Error al parsear respuesta del servidor. Ver consola para detalles.', 'error');
             return;
         }
         
@@ -100,7 +100,7 @@ async function generateScenarios() {
             displayResults(data.contract_b);
         } else {
             console.error('❌ Error en la generación:', data);
-            alert('Error al generar escenarios:\n' + (data.error || 'Error desconocido') + 
+            showToast('Error al generar escenarios:\n' + (data.error || 'Error desconocido', 'error') + 
                   (data.traceback ? '\n\nVer consola para más detalles' : ''));
             if (data.traceback) {
                 console.error('Traceback:', data.traceback);
@@ -109,7 +109,7 @@ async function generateScenarios() {
     } catch (error) {
         console.error('❌ Error de conexión:', error);
         hideLoading();
-        alert('Error de conexión: ' + error.message);
+        showToast('Error de conexión: ' + error.message, 'error');
         console.error(error);
     }
 }
@@ -294,7 +294,7 @@ function displayCoverageMatrix(contractB) {
 
 function startReview() {
     if (!currentContractB) {
-        alert('No hay datos para revisar');
+        showToast('No hay datos para revisar', 'error');
         return;
     }
     
@@ -304,7 +304,7 @@ function startReview() {
 
 function generateReport() {
     if (!currentContractB) {
-        alert('No hay datos para generar el reporte');
+        showToast('No hay datos para generar el reporte', 'error');
         return;
     }
     

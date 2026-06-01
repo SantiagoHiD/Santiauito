@@ -43,6 +43,8 @@ async function checkProjectSelection() {
         }
     } catch (error) {
         console.error('Error al cargar proyecto:', error);
+        localStorage.removeItem('selectedProjectId');
+        window.location.href = '../projects/projects.html';
     }
 }
 
@@ -72,6 +74,7 @@ function switchMainTab(tabName) {
     // Mostrar la sección seleccionada
     if (tabName === 'generator') {
         document.getElementById('main-content-generator').classList.remove('hidden');
+        switchTab('input');
     } else if (tabName === 'history') {
         document.getElementById('main-content-history').classList.remove('hidden');
         // Cargar el historial cuando se abre el tab
@@ -161,13 +164,13 @@ function renderHistoryInPage(stories) {
                 </span>`;
                 
                 downloadButton = `<button onclick="downloadReportFromHistory('${story.scenarios.filename}')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all" title="Descargar reporte final firmado">
-                    <i class="fas fa-download mr-2"></i>Descargar Reporte Final
+                    <i class="fas fa-download mr-2"></i>Descargar Reporte Ejecutivo
                 </button>`;
                 
                 // Boton M3: continuar o ver codigo segun estado
                 if (story.has_code) {
-                    viewButton = `<button onclick="viewContractC('${story.code.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Generar reportes combinados M2 + M3">
-                        <i class="fas fa-file-alt mr-2"></i>Generar Reportes M2 + M3
+                    viewButton = `<button onclick="viewCombinedReportFromHistory('${story.code.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Ver reporte técnico completo (escenarios + código)">
+                        <i class="fas fa-file-alt mr-2"></i>Generar Reporte Técnico Completo
                     </button>`;
                 } else {
                     viewButton = `<button onclick="continueWithCode('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Continuar con el proceso en el Modulo 3">
@@ -180,8 +183,8 @@ function renderHistoryInPage(stories) {
                     <i class="fas fa-pen mr-1"></i>Pendiente Firma
                 </span>`;
                 
-                viewButton = `<button onclick="viewAndSignReport('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Ver y firmar reporte">
-                    <i class="fas fa-signature mr-2"></i>Ver y Firmar Reporte
+                viewButton = `<button onclick="viewAndSignReport('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Firmar reporte ejecutivo">
+                    <i class="fas fa-signature mr-2"></i>Firmar Reporte Ejecutivo
                 </button>`;
             }
         } else {
@@ -455,7 +458,7 @@ function getApiHeaders(additionalHeaders = {}) {
 
 function checkApiKey() {
     const apiKey = localStorage.getItem('groq_api_key');
-    const useMock = localStorage.getItem('use_mock') === 'true';
+    const useMock = localStorage.getItem('use_mock') === null || localStorage.getItem('use_mock') === 'true';
     if (!apiKey && !useMock) {
         document.getElementById('apiKeyModal').classList.remove('hidden');
     }
@@ -466,8 +469,8 @@ function openApiKeyModal() {
     if (currentKey) {
         document.getElementById('apiKeyInput').value = currentKey;
     }
-    // Restaurar estado del toggle mock
-    const useMock = localStorage.getItem('use_mock') === 'true';
+    // Restaurar estado del toggle mock (por defecto ON)
+    const useMock = localStorage.getItem('use_mock') === null || localStorage.getItem('use_mock') === 'true';
     document.getElementById('useMockToggle').checked = useMock;
     updateMockToggleUI(useMock);
     document.getElementById('apiKeyModal').classList.remove('hidden');
@@ -501,12 +504,12 @@ function saveApiKey() {
     const useMock = document.getElementById('useMockToggle').checked;
     
     if (!apiKey && !useMock) {
-        alert('Ingresa una API Key o activa el modo simulación');
+        showToast('Ingresa una API Key o activa el modo simulación', 'warning');
         return;
     }
     
     if (apiKey && !apiKey.startsWith('gsk_')) {
-        alert('La API Key de Groq debe comenzar con "gsk_"');
+        showToast('La API Key de Groq debe comenzar con "gsk_"', 'error');
         return;
     }
     
@@ -519,7 +522,8 @@ function saveApiKey() {
     
     // Mostrar confirmación
     const msg = useMock ? '✅ Modo simulación activado' : '✅ API Key guardada correctamente. Ya puedes usar QualityAI.';
-    alert(msg);
+    const toastType = msg.includes('simulación') ? 'success' : 'success';
+    showToast(msg, toastType);
     
     // Recargar health check
     checkHealth();
@@ -613,7 +617,7 @@ function updateCodeTabLabel() {
     const tabBtn = document.getElementById('tab-code');
     if (!tabBtn) return;
     if (currentContractC) {
-        tabBtn.innerHTML = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span><i class="fas fa-file-alt mr-2"></i>Ver Reporte';
+        tabBtn.innerHTML = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span><i class="fas fa-file-alt mr-2"></i>Revisión de Código';
     } else {
         tabBtn.innerHTML = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span><i class="fas fa-magic mr-2"></i>Generar Código';
     }
@@ -723,7 +727,7 @@ function startNewRequirement() {
                         <h2 class="text-3xl font-bold text-gray-800 mb-3">No hay análisis disponible</h2>
                         <p class="text-gray-500 text-lg mb-8">Ingresa un requerimiento para detectar automáticamente las ambigüedades</p>
                         <button onclick="switchTab('input')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
-                            Ir a Entrada de Requerimientos
+                            Ir a Ingreso de Requerimientos
                         </button>
                     </div>
                 </div>
@@ -783,7 +787,7 @@ function startNewRequirement() {
                         <h2 class="text-3xl font-bold text-gray-800 mb-3">No hay historias disponibles</h2>
                         <p class="text-gray-500 text-lg mb-8">Ingresa un requerimiento para generar historias de usuario automáticamente</p>
                         <button onclick="switchTab('input')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
-                            Ir a Entrada de Requerimientos
+                            Ir a Ingreso de Requerimientos
                         </button>
                     </div>
                 </div>
@@ -849,7 +853,7 @@ async function startProcess() {
     const requirement = document.getElementById('requirementInput').value.trim();
     
     if (!requirement) {
-        alert('Por favor ingrese un requerimiento');
+        showToast('Por favor ingrese un requerimiento', 'warning');
         return;
     }
     
@@ -894,7 +898,7 @@ async function startProcess() {
         
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al analizar: ' + error.message);
+        showToast('Error al analizar: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -912,7 +916,7 @@ async function analyzeAmbiguities() {
     const requirement = document.getElementById('requirementInput').value.trim();
     
     if (!requirement) {
-        alert('Por favor ingrese un requerimiento');
+        showToast('Por favor ingrese un requerimiento', 'warning');
         return;
     }
     
@@ -946,7 +950,7 @@ async function analyzeAmbiguities() {
         hideLoading();
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al analizar ambigüedades: ' + error.message);
+        showToast('Error al analizar ambigüedades: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -1316,7 +1320,7 @@ function updateResolution(index, type, value) {
 
 function showAcceptAllModal() {
     if (!currentResolutions || currentResolutions.length === 0) {
-        alert('No hay ambigüedades para resolver');
+        showToast('No hay ambigüedades para resolver', 'error');
         return;
     }
     
@@ -1341,7 +1345,7 @@ function closeAcceptAllModal() {
 function showGroqErrorModal(errorType, fullErrorMessage) {
     const modal = document.getElementById('groqErrorModal');
     if (!modal) {
-        alert('Error: ' + fullErrorMessage);
+        showToast('Error: ' + fullErrorMessage, 'error');
         return;
     }
     const header = document.getElementById('errorModalHeader');
@@ -1353,7 +1357,7 @@ function showGroqErrorModal(errorType, fullErrorMessage) {
     const infoBox = document.getElementById('errorModalInfo');
     
     if (!title || !subtitle || !message || !solutions) {
-        alert('Error: ' + fullErrorMessage);
+        showToast('Error: ' + fullErrorMessage, 'error');
         return;
     }
     
@@ -1448,8 +1452,14 @@ function showGroqErrorModal(errorType, fullErrorMessage) {
     message.textContent = config.message;
     icon.className = `fas ${config.icon} text-2xl`;
     header.className = `bg-gradient-to-r ${config.headerColor} p-6 text-white`;
-    infoBox.className = `bg-${config.infoColor}-50 border-l-4 border-${config.infoColor}-500 p-4 rounded-lg`;
-    infoBox.querySelector('.fas').className = `fas fa-info-circle text-${config.infoColor}-600 mt-0.5`;
+    const infoStyles = {
+        red: { box: 'bg-red-50 border-red-500 p-4', icon: 'text-red-600' },
+        orange: { box: 'bg-orange-50 border-orange-500 p-4', icon: 'text-orange-600' },
+        yellow: { box: 'bg-yellow-50 border-yellow-500 p-4', icon: 'text-yellow-600' },
+    };
+    const st = infoStyles[config.infoColor] || infoStyles.red;
+    infoBox.className = `${st.box} border-l-4 rounded-lg`;
+    infoBox.querySelector('.fas').className = `fas fa-info-circle ${st.icon} mt-0.5`;
     
     // Generar lista de soluciones
     solutions.innerHTML = config.solutions.map(sol => `<li>${sol}</li>`).join('');
@@ -1536,7 +1546,7 @@ async function submitResolutions() {
     // Validate all resolutions are completed
     const pending = currentResolutions.filter(r => r.status === 'pending');
     if (pending.length > 0) {
-        alert(`Por favor resuelva todas las ambigüedades (${pending.length} pendientes)`);
+        showToast(`Por favor resuelva todas las ambigüedades (${pending.length} pendientes)`, 'error');
         return;
     }
     
@@ -1548,7 +1558,7 @@ async function refineRequirements(resolutions = null) {
     const version = AGENT_VERSION; // Siempre v4
     
     if (!requirement) {
-        alert('Por favor ingrese un requerimiento');
+        showToast('Por favor ingrese un requerimiento', 'warning');
         return;
     }
     
@@ -1925,7 +1935,7 @@ function displayResults(result, timestamp = null) {
 
 async function startModule2() {
     if (!currentContractA) {
-        alert('Error: No hay Contract A disponible. Primero genera las historias de usuario.');
+        showToast('Error: No hay Contract A disponible. Primero genera las historias de usuario.', 'error');
         return;
     }
     
@@ -2195,26 +2205,26 @@ function displayScenariosInTab(contractB) {
                     <div class="flex items-center justify-center mb-3">
                         <i class="fas fa-clipboard-check text-4xl text-indigo-600 group-hover:scale-110 transition-transform"></i>
                     </div>
-                    <h4 class="text-lg text-gray-800 mb-2">Revisar Escenarios Manualmente y generar el reporte final</h4>
+                    <h4 class="text-lg text-gray-800 mb-2">Revisar Escenarios + Reporte Ejecutivo</h4>
                     <p class="text-sm text-gray-600 font-normal">
-                        Revisa y ajusta cada escenario antes de generar el reporte final
+                        Revisa y ajusta cada escenario antes de generar el reporte ejecutivo
                     </p>
                     <div class="mt-3 text-xs text-indigo-600 font-semibold">
-                        ⏱️ Revisión detallada + Reporte final
+                        ⏱️ Revisión detallada + Reporte Ejecutivo
                     </div>
                 </button>
                 
-                <!-- Opción 2: Generar Reporte Final Automático -->
+                <!-- Opción 2: Generar Reporte Ejecutivo Automático -->
                 <button onclick="generateReportDirect()" class="group px-6 py-6 bg-white border-2 border-emerald-400 rounded-lg font-bold hover:bg-emerald-50 transition-all shadow-md hover:shadow-xl">
                     <div class="flex items-center justify-center mb-3">
                         <i class="fas fa-magic text-4xl text-emerald-600 group-hover:scale-110 transition-transform"></i>
                     </div>
-                    <h4 class="text-lg text-gray-800 mb-2">Generar Reporte Final Automático</h4>
+                    <h4 class="text-lg text-gray-800 mb-2">Generar Reporte Ejecutivo Automático</h4>
                     <p class="text-sm text-gray-600 font-normal">
                         Crea el reporte ejecutivo directamente con validación automática
                     </p>
                     <div class="mt-3 text-xs text-emerald-600 font-semibold">
-                        ⚡ Proceso rápido + Reporte final instantáneo
+                        ⚡ Proceso rápido + Reporte Ejecutivo instantáneo
                     </div>
                 </button>
             </div>
@@ -2250,7 +2260,7 @@ let reviewChanges = [];
 
 function startReview() {
     if (!window.currentContractB) {
-        alert('No hay escenarios para revisar');
+        showToast('No hay escenarios para revisar', 'error');
         return;
     }
     
@@ -2271,7 +2281,7 @@ function startReview() {
     });
     
     if (reviewScenarios.length === 0) {
-        alert('No hay escenarios para revisar');
+        showToast('No hay escenarios para revisar', 'error');
         return;
     }
     
@@ -2287,7 +2297,7 @@ function startReview() {
 
 async function generateReportDirect() {
     if (!window.currentContractB) {
-        alert('No hay escenarios para generar el reporte');
+        showToast('No hay escenarios para generar el reporte', 'error');
         return;
     }
 
@@ -2446,7 +2456,7 @@ function reclassifyScenarioInModal() {
     const notes = document.getElementById('reviewNotesTextarea').value.trim();
     
     if (!notes) {
-        alert('Por favor justifica por qué estás reclasificando este escenario');
+        showToast('Por favor justifica por qué estás reclasificando este escenario', 'warning');
         return;
     }
     
@@ -2485,7 +2495,7 @@ async function submitReviewInModal() {
     const finalNotes = document.getElementById('finalNotesInput').value.trim();
     
     if (!reviewerName) {
-        alert('Por favor ingresa tu nombre');
+        showToast('Por favor ingresa tu nombre', 'warning');
         return;
     }
     
@@ -2508,7 +2518,7 @@ async function submitReviewInModal() {
             await saveContractBWithReview(currentContractBFilename, window.currentContractB);
         } catch (error) {
             console.error('Error al guardar la firma:', error);
-            alert('Advertencia: La firma no se pudo guardar permanentemente');
+            showToast('Advertencia: La firma no se pudo guardar permanentemente', 'warning');
         }
     }
     
@@ -3110,22 +3120,22 @@ function submitApprovalModal() {
     const approved = document.getElementById('approvalCheckboxModal').checked;
     
     if (!clientName) {
-        alert('Por favor ingrese el nombre del cliente');
+        showToast('Por favor ingrese el nombre del cliente', 'warning');
         return;
     }
     
     if (!clientPosition) {
-        alert('Por favor ingrese el cargo del cliente');
+        showToast('Por favor ingrese el cargo del cliente', 'warning');
         return;
     }
     
     if (!hasSignatureModal) {
-        alert('Por favor firme el documento');
+        showToast('Por favor firme el documento', 'warning');
         return;
     }
     
     if (!approved) {
-        alert('Por favor marque la casilla de aprobación');
+        showToast('Por favor marque la casilla de aprobación', 'warning');
         return;
     }
     
@@ -3148,7 +3158,7 @@ function submitApprovalModal() {
             })
             .catch(error => {
                 console.error('Error al guardar la firma:', error);
-                alert('Advertencia: La firma no se pudo guardar permanentemente');
+                showToast('Advertencia: La firma no se pudo guardar permanentemente', 'warning');
             });
     }
     
@@ -3166,7 +3176,7 @@ function submitApprovalModal() {
     // Refrescar el reporte para mostrar la versión firmada
     showReportInModal(window.currentContractB);
     
-    alert('✅ Reporte aprobado y firmado exitosamente');
+    showToast('✅ Reporte aprobado y firmado exitosamente', 'success');
 }
 
 function downloadReportPDF() {
@@ -3242,7 +3252,7 @@ function updateGenerateCodeButtonState() {
 
 async function generateCode() {
     if (!window.currentContractB) {
-        alert('No hay Contract B disponible para generar código');
+        showToast('No hay Contract B disponible para generar código', 'error');
         return;
     }
 
@@ -3286,7 +3296,7 @@ async function generateCode() {
     } catch (error) {
         hideLoading();
         console.error('Error generando código:', error);
-        alert('Error al generar código:\n' + error.message);
+        showToast('Error al generar código:\n' + error.message, 'error');
     }
 }
 
@@ -3415,13 +3425,13 @@ function restoreCodeTabLayout() {
                     </button>
                     ${window.currentContractB ? `
                     <button onclick="generateCombinedReport()" class="px-5 py-2.5 border-2 border-emerald-400 text-emerald-700 rounded-lg font-semibold hover:bg-emerald-50 transition-all">
-                        <i class="fas fa-file-alt mr-2"></i>Generar Reporte (M2+M3)
+                        <i class="fas fa-file-alt mr-2"></i>Reporte Técnico Completo
                     </button>
                     ` : ''}
                 </div>
                 <div class="flex space-x-3">
                     <button onclick="downloadCodeReport()" class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all shadow-md">
-                        <i class="fas fa-file-pdf mr-2"></i>Descargar Reporte M3
+                        <i class="fas fa-file-pdf mr-2"></i>Descargar Reporte de Código
                     </button>
                     <button id="startCodeReviewBtn" onclick="startCodeReview()" class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md">
                         <i class="fas fa-clipboard-check mr-2"></i>Revisar Código Manualmente
@@ -3706,7 +3716,7 @@ function populateCoverageTab(contractC) {
 
 function startCodeReview() {
     if (!currentContractC || !currentContractC.generated_code || currentContractC.generated_code.length === 0) {
-        alert('No hay código generado para revisar');
+        showToast('No hay código generado para revisar', 'error');
         return;
     }
 
@@ -3788,7 +3798,7 @@ function acceptCodeModule() {
 function commentCodeModule() {
     const notes = document.getElementById('codeReviewNotes').value.trim();
     if (!notes) {
-        alert('Por favor escribe tu observación');
+        showToast('Por favor escribe tu observación', 'warning');
         return;
     }
     const mod = codeReviewModules[currentCodeReviewIndex];
@@ -3828,7 +3838,7 @@ async function submitCodeReview() {
     const finalNotes = document.getElementById('codeReviewFinalNotes').value.trim();
 
     if (!reviewerName) {
-        alert('Por favor ingresa tu nombre');
+        showToast('Por favor ingresa tu nombre', 'warning');
         return;
     }
 
@@ -3869,7 +3879,7 @@ async function submitCodeReview() {
         }
     } catch (error) {
         console.error('Error al guardar revisión:', error);
-        alert('Error al guardar revisión: ' + error.message);
+        showToast('Error al guardar revisión: ' + error.message, 'error');
     }
 }
 
@@ -4197,13 +4207,37 @@ function downloadReportAsPdf() {
     };
 }
 
+async function viewCombinedReportFromHistory(codeFilename, scenariosFilename) {
+    showLoading('Cargando reporte completo...');
+    try {
+        const [codeResponse, scenariosResponse] = await Promise.all([
+            fetch(`${API_BASE}/history/modulo3/${codeFilename}`),
+            fetch(`${API_BASE}/history/modulo2/${scenariosFilename}`)
+        ]);
+        const codeData = await codeResponse.json();
+        const scenariosData = await scenariosResponse.json();
+        hideLoading();
+        if (codeData.success && scenariosData.success) {
+            currentContractC = codeData.data;
+            window.currentContractB = scenariosData.data;
+            generateCombinedReport();
+        } else {
+            showToast('Error al cargar datos del reporte combinado', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        hideLoading();
+        showToast('Error al cargar reporte: ' + error.message, 'error');
+    }
+}
+
 function generateCombinedReport() {
     if (!currentContractC) {
-        alert('No hay código generado para generar el reporte');
+        showToast('No hay código generado para generar el reporte', 'error');
         return;
     }
     if (!window.currentContractB) {
-        alert('No hay escenarios de prueba para generar el reporte combinado');
+        showToast('No hay escenarios de prueba para generar el reporte combinado', 'error');
         return;
     }
 
@@ -4220,7 +4254,7 @@ function generateCombinedReport() {
         <div class="text-right text-sm text-gray-600 mb-4">Generado el ${dateStr}</div>
 
         <div class="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 rounded-xl text-white">
-            <h2 class="text-2xl font-bold mb-2">Reporte Completo M2+M3</h2>
+            <h2 class="text-2xl font-bold mb-2">Reporte Técnico Completo</h2>
             <p class="text-purple-100">Escenarios de Prueba + Código Generado + Quality Report</p>
         </div>
 
@@ -4304,7 +4338,7 @@ function downloadCombinedReportAsPdf() {
     let html = printContent.innerHTML;
 
     const printWindow = window.open('', '', 'height=600,width=800');
-    printWindow.document.write('<html><head><title>Reporte Completo M2+M3</title>');
+    printWindow.document.write('<html><head><title>Reporte Técnico Completo</title>');
     printWindow.document.write('<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">');
     printWindow.document.write('<style>@media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }');
     printWindow.document.write('body{font-family:Arial,sans-serif;color:#333;padding:40px;}');
@@ -4322,7 +4356,7 @@ function downloadCombinedReportAsPdf() {
 
 function downloadCodeReport() {
     if (!currentContractC) {
-        alert('No hay código generado para descargar');
+        showToast('No hay código generado para descargar', 'error');
         return;
     }
     const cc = currentContractC;

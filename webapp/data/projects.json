@@ -25,5 +25,14 @@
     "created_at": "2026-06-01T14:50:33.406973",
     "updated_at": "2026-06-01T15:32:19.032877",
     "is_favorite": false
+  },
+  {
+    "id": "13840a7f-958a-4b95-affd-65c94073aca9",
+    "name": "Ultimo",
+    "description": "ultimo",
+    "color": "purple",
+    "is_favorite": false,
+    "created_at": "2026-06-01T17:03:38.250380",
+    "updated_at": "2026-06-01T17:03:38.250400"
   }
 ]

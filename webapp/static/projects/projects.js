@@ -217,7 +217,7 @@ async function createProject() {
     const description = document.getElementById('projectDescription').value.trim();
     
     if (!name) {
-        alert('Por favor ingresa un nombre para el proyecto');
+        showToast('Por favor ingresa un nombre para el proyecto', 'warning');
         return;
     }
     
@@ -244,12 +244,12 @@ async function createProject() {
             showSuccessToast('Proyecto creado exitosamente');
             loadProjects();
         } else {
-            alert('Error al crear proyecto: ' + data.error);
+            showToast('Error al crear proyecto: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
         hideLoading();
-        alert('Error al crear proyecto: ' + error.message);
+        showToast('Error al crear proyecto: ' + error.message, 'error');
     }
 }
 
@@ -323,12 +323,12 @@ async function editProject(projectId) {
             // Mostrar modal
             document.getElementById('editProjectModal').classList.remove('hidden');
         } else {
-            alert('Error al cargar proyecto: ' + data.error);
+            showToast('Error al cargar proyecto: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
         hideLoading();
-        alert('Error al cargar proyecto: ' + error.message);
+        showToast('Error al cargar proyecto: ' + error.message, 'error');
     }
 }
 
@@ -352,12 +352,12 @@ async function saveEditProject() {
     const description = document.getElementById('editProjectDescription').value.trim();
     
     if (!name) {
-        alert('Por favor ingresa un nombre para el proyecto');
+        showToast('Por favor ingresa un nombre para el proyecto', 'warning');
         return;
     }
     
     if (!editingProjectId) {
-        alert('Error: No se ha seleccionado un proyecto para editar');
+        showToast('Error: No se ha seleccionado un proyecto para editar', 'error');
         return;
     }
     
@@ -384,12 +384,88 @@ async function saveEditProject() {
             showSuccessToast('Proyecto actualizado exitosamente');
             loadProjects();
         } else {
-            alert('Error al actualizar proyecto: ' + data.error);
+            showToast('Error al actualizar proyecto: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
         hideLoading();
-        alert('Error al actualizar proyecto: ' + error.message);
+        showToast('Error al actualizar proyecto: ' + error.message, 'error');
+    }
+}
+
+// ============================================================
+// Delete Confirmation Modal (replaces native confirm)
+// ============================================================
+
+let deleteConfirmResolve = null;
+let deleteTargetName = '';
+
+function showDeleteConfirm(projectName) {
+    return new Promise((resolve) => {
+        deleteConfirmResolve = resolve;
+        deleteTargetName = projectName;
+        renderDeleteStep1();
+        document.getElementById('deleteConfirmModal').classList.remove('hidden');
+    });
+}
+
+function renderDeleteStep1() {
+    document.getElementById('deleteConfirmContent').innerHTML = `
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">¿Eliminar proyecto?</h3>
+            </div>
+            <p class="text-gray-600 mb-2">Vas a eliminar: <strong>"${escapeHtml(deleteTargetName)}"</strong></p>
+            <ul class="text-sm text-gray-500 space-y-1 mb-6 ml-4 list-disc">
+                <li>Se eliminará de la lista de proyectos</li>
+                <li>NO se eliminarán los requerimientos creados</li>
+                <li>Los requerimientos quedarán sin proyecto asignado</li>
+                <li>Esta acción NO se puede deshacer</li>
+            </ul>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeDeleteConfirm()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancelar</button>
+                <button onclick="renderDeleteStep2()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">Sí, eliminar</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderDeleteStep2() {
+    document.getElementById('deleteConfirmContent').innerHTML = `
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-shield-halved text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">Confirmación final</h3>
+            </div>
+            <p class="text-gray-600 mb-6">Confirma nuevamente que deseas eliminar <strong>"${escapeHtml(deleteTargetName)}"</strong></p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="renderDeleteStep1()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-arrow-left mr-1"></i> Volver
+                </button>
+                <button onclick="executeDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">Sí, estoy seguro</button>
+            </div>
+        </div>
+    `;
+}
+
+function closeDeleteConfirm() {
+    document.getElementById('deleteConfirmModal').classList.add('hidden');
+    if (deleteConfirmResolve) {
+        deleteConfirmResolve(false);
+        deleteConfirmResolve = null;
+    }
+}
+
+function executeDelete() {
+    document.getElementById('deleteConfirmModal').classList.add('hidden');
+    if (deleteConfirmResolve) {
+        deleteConfirmResolve(true);
+        deleteConfirmResolve = null;
     }
 }
 
@@ -398,25 +474,8 @@ async function saveEditProject() {
 // ============================================================
 
 async function deleteProject(projectId, projectName) {
-    // Confirmación con advertencia clara
-    const confirmed = confirm(
-        `⚠️ ¿ESTÁS SEGURO?\n\n` +
-        `Vas a eliminar el proyecto: "${projectName}"\n\n` +
-        `Esta acción:\n` +
-        `• Eliminará el proyecto de la lista\n` +
-        `• NO eliminará los requerimientos ya creados\n` +
-        `• Los requerimientos quedarán sin proyecto asignado\n\n` +
-        `Esta acción NO se puede deshacer.`
-    );
-    
+    const confirmed = await showDeleteConfirm(projectName);
     if (!confirmed) return;
-    
-    // Segunda confirmación
-    const doubleConfirm = confirm(
-        `Confirma nuevamente que deseas eliminar "${projectName}"`
-    );
-    
-    if (!doubleConfirm) return;
     
     showLoading('Eliminando proyecto...');
     
@@ -432,12 +491,12 @@ async function deleteProject(projectId, projectName) {
             showSuccessToast('Proyecto eliminado exitosamente');
             loadProjects();
         } else {
-            alert('❌ Error al eliminar proyecto: ' + data.error);
+            showToast('❌ Error al eliminar proyecto: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
         hideLoading();
-        alert('❌ Error al eliminar proyecto: ' + error.message);
+        showToast('❌ Error al eliminar proyecto: ' + error.message, 'error');
     }
 }
 
@@ -462,20 +521,9 @@ function hideLoading() {
 
 function showError(message) {
     hideLoading();
-    alert('❌ ' + message);
+    showToast('❌ ' + message, 'error');
 }
 
 function showSuccessToast(message) {
-    // Simple toast notification
-    const toast = document.createElement('div');
-    toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2';
-    toast.innerHTML = `
-        <i class="fas fa-check-circle"></i>
-        <span>${message}</span>
-    `;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
+    showToast(message, 'success');
 }

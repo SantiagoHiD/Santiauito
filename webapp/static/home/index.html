@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QualityAI - Requirements Refiner</title>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/history/history.css">
     <link rel="stylesheet" href="/components/user-menu.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        *:focus { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 4px; }
+        *:focus:not(:focus-visible) { outline: none; }
+        *:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 4px; }
         
         * {
             font-family: 'Inter', sans-serif;
@@ -219,15 +225,15 @@
             <div class="flex border-b">
                 <button onclick="switchTab('input')" id="tab-input" class="tab-active px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent" style="border-bottom-color: #64748b;">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#64748b;color:white;">M0</span>
-                    <i class="fas fa-edit mr-2"></i>Entrada
+                                    <i class="fas fa-edit mr-2"></i>Ingreso
                 </button>
                 <button onclick="switchTab('ambiguities')" id="tab-ambiguities" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#6366f1;color:white;">M1</span>
-                    <i class="fas fa-exclamation-triangle mr-2"></i>Ambigüedades
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>Análisis
                 </button>
                 <button onclick="switchTab('results')" id="tab-results" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#10b981;color:white;">M2</span>
-                    <i class="fas fa-check-circle mr-2"></i>Resultados
+                                    <i class="fas fa-check-circle mr-2"></i>Escenarios de Prueba
                 </button>
                 <button onclick="switchTab('code')" id="tab-code" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span>
@@ -522,7 +528,7 @@
                                 <h2 class="text-3xl font-bold text-gray-800 mb-3">No hay análisis disponible</h2>
                                 <p class="text-gray-500 text-lg mb-8">Ingresa un requerimiento para detectar automáticamente las ambigüedades</p>
                                 <button onclick="switchTab('input')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
-                                    Ir a Entrada de Requerimientos
+                                    Ir a Ingreso de Requerimientos
                                 </button>
                             </div>
                         </div>
@@ -693,7 +699,7 @@
                                 <h2 class="text-3xl font-bold text-gray-800 mb-3">No hay historias disponibles</h2>
                                 <p class="text-gray-500 text-lg mb-8">Ingresa un requerimiento para generar historias de usuario automáticamente</p>
                                 <button onclick="switchTab('input')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
-                                    Ir a Entrada de Requerimientos
+                                    Ir a Ingreso de Requerimientos
                                 </button>
                             </div>
                         </div>
@@ -820,7 +826,7 @@
                     </button>
                     <div class="flex space-x-3">
                         <button onclick="downloadCodeReport()" class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all shadow-md">
-                            <i class="fas fa-file-pdf mr-2"></i>Descargar Reporte
+                            <i class="fas fa-file-pdf mr-2"></i>Descargar Reporte de Código
                         </button>
                         <button id="startCodeReviewBtn" onclick="startCodeReview()" class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md">
                             <i class="fas fa-clipboard-check mr-2"></i>Revisar Código Manualmente
@@ -860,8 +866,8 @@
                             <p class="text-indigo-100 text-sm">Revisa cada módulo y emite tu veredicto final</p>
                         </div>
                     </div>
-                    <button onclick="closeCodeReviewModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
-                        <i class="fas fa-times text-xl"></i>
+                    <button onclick="closeCodeReviewModal()" aria-label="Cerrar" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
+                        <i class="fas fa-times text-xl" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -972,8 +978,8 @@
                             <p class="text-emerald-100 text-sm">Documento completo de código generado y revisión</p>
                         </div>
                     </div>
-                    <button onclick="closeReportModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
-                        <i class="fas fa-times text-xl"></i>
+                    <button onclick="closeReportModal()" aria-label="Cerrar" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
+                        <i class="fas fa-times text-xl" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -1138,7 +1144,7 @@
                     <div class="text-center">
                         <button onclick="submitReviewInModal()" class="px-10 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-bold text-lg hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg">
                             <i class="fas fa-signature mr-2"></i>
-                            Firmar y Generar Reporte Final
+                            Firmar y Generar Reporte Ejecutivo
                         </button>
                     </div>
                 </div>
@@ -1161,6 +1167,7 @@
         </div>
     </div>
 
+    <script src="/components/toast.js"></script>
     <script src="app.js"></script>
     <script src="/history/history.js"></script>
     <script src="/components/user-menu.js"></script>

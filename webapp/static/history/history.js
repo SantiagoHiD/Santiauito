@@ -110,11 +110,11 @@ async function loadHistory() {
             // Mostrar historias con sus escenarios vinculados y M3
             displayHistory(historyData, m3HistoryData);
         } else {
-            alert('Error al cargar historial: ' + data.error);
+            showToast('Error al cargar historial: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cargar historial: ' + error.message);
+        showToast('Error al cargar historial: ' + error.message, 'error');
     }
 }
 
@@ -151,14 +151,14 @@ function displayHistory(stories, m3History = []) {
                     <i class="fas fa-check-double mr-1"></i>Firmado y Aprobado
                 </span>`;
                 
-                viewButton = `<button onclick="downloadReportFromHistory('${story.scenarios.filename}')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all" title="Descargar reporte final firmado">
-                    <i class="fas fa-file-download mr-2"></i>Descargar Reporte Final
+                viewButton = `<button onclick="downloadReportFromHistory('${story.scenarios.filename}')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all" title="Descargar reporte ejecutivo firmado">
+                    <i class="fas fa-file-download mr-2"></i>Descargar Reporte Ejecutivo
                 </button>`;
                 
                 // Boton M3: continuar o ver codigo segun estado
                 if (story.has_code) {
-                    viewButton += ` <button onclick="viewContractC('${story.code.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Generar reportes combinados M2 + M3">
-                        <i class="fas fa-file-alt mr-2"></i>Generar Reportes M2 + M3
+                    viewButton += ` <button onclick="viewCombinedReportFromHistory('${story.code.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Ver reporte técnico completo (escenarios + código)">
+                        <i class="fas fa-file-alt mr-2"></i>Generar Reporte Técnico Completo
                     </button>`;
                 } else {
                     viewButton += ` <button onclick="continueWithCode('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Continuar con el proceso en el Modulo 3">
@@ -173,8 +173,8 @@ function displayHistory(stories, m3History = []) {
                     <i class="fas fa-pen mr-1"></i>Pendiente Firma
                 </span>`;
                 
-                viewButton = `<button onclick="viewAndSignReport('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Ver y firmar reporte">
-                    <i class="fas fa-signature mr-2"></i>Ver y Firmar Reporte
+                viewButton = `<button onclick="viewAndSignReport('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Firmar reporte ejecutivo">
+                    <i class="fas fa-signature mr-2"></i>Firmar Reporte Ejecutivo
                 </button>`;
                 
                 downloadButton = ''; // Sin botón adicional
@@ -317,11 +317,11 @@ async function viewCompleteReport(storiesFilename, scenariosFilename) {
             switchTab('results');
             switchResultsSubTab('scenarios');
         } else {
-            alert('Error al cargar reporte completo');
+            showToast('Error al cargar reporte completo', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cargar reporte completo: ' + error.message);
+        showToast('Error al cargar reporte completo: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -361,11 +361,11 @@ async function viewAndSignReport(storiesFilename, scenariosFilename) {
             switchTab('results');
             switchResultsSubTab('scenarios');
         } else {
-            alert('Error al cargar archivos');
+            showToast('Error al cargar archivos', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cargar archivos: ' + error.message);
+        showToast('Error al cargar archivos: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -392,11 +392,11 @@ async function downloadReportFromHistory(scenariosFilename) {
             // Mostrar el reporte en modal
             showReportInModal(data.data);
         } else {
-            alert('Error al cargar reporte: ' + data.error);
+            showToast('Error al cargar reporte: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cargar reporte: ' + error.message);
+        showToast('Error al cargar reporte: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -469,31 +469,11 @@ async function confirmDelete() {
 }
 
 function showSuccessToast(message) {
-    const toast = document.createElement('div');
-    toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg z-50 flex items-center space-x-3 animate-fade-in';
-    toast.innerHTML = `
-        <i class="fas fa-check-circle text-2xl"></i>
-        <span class="font-semibold">${message}</span>
-    `;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
+    showToast(message, 'success');
 }
 
 function showErrorToast(message) {
-    const toast = document.createElement('div');
-    toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-4 rounded-lg shadow-lg z-50 flex items-center space-x-3 animate-fade-in';
-    toast.innerHTML = `
-        <i class="fas fa-exclamation-circle text-2xl"></i>
-        <span class="font-semibold">${message}</span>
-    `;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.remove();
-    }, 4000);
+    showToast(message, 'error');
 }
 
 async function completeWithScenarios(storiesFilename) {
@@ -519,11 +499,11 @@ async function completeWithScenarios(storiesFilename) {
             displayResults(data.data, timestamp);
             switchTab('results');
         } else {
-            alert('Error al cargar archivo: ' + data.error);
+            showToast('Error al cargar archivo: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cargar archivo: ' + error.message);
+        showToast('Error al cargar archivo: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -574,11 +554,11 @@ async function continueWithCode(storiesFilename, scenariosFilename) {
                 switchResultsSubTab('scenarios');
             }
         } else {
-            alert('Error al cargar archivos: M2=' + (dataB.error || 'ok') + ' M1=' + (dataA.error || 'ok'));
+            showToast('Error al cargar archivos: M2=' + (dataB.error || 'ok', 'error') + ' M1=' + (dataA.error || 'ok'));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cargar datos: ' + error.message);
+        showToast('Error al cargar datos: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -607,11 +587,11 @@ async function viewHistoryFile(module, filename) {
                 switchResultsSubTab('scenarios');
             }
         } else {
-            alert('Error al cargar archivo: ' + data.error);
+            showToast('Error al cargar archivo: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cargar archivo: ' + error.message);
+        showToast('Error al cargar archivo: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -657,11 +637,11 @@ async function viewContractC(filename) {
                 switchTab('code');
             }
         } else {
-            alert('Error al cargar código: ' + data.error);
+            showToast('Error al cargar código: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al cargar código: ' + error.message);
+        showToast('Error al cargar código: ' + error.message, 'error');
         hideLoading();
     }
 }
@@ -681,10 +661,10 @@ async function downloadHistoryFile(module, filename) {
             link.click();
             URL.revokeObjectURL(url);
         } else {
-            alert('Error al descargar archivo: ' + data.error);
+            showToast('Error al descargar archivo: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al descargar archivo: ' + error.message);
+        showToast('Error al descargar archivo: ' + error.message, 'error');
     }
 }

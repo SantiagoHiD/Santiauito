@@ -2,7 +2,7 @@ const contractB = JSON.parse(localStorage.getItem('contractB') || 'null');
 const agentVersion = localStorage.getItem('agentVersion') || 'v4';
 
 if (!contractB) {
-    alert('No hay datos para revisar. Redirigiendo...');
+    showToast('No hay datos para revisar. Redirigiendo...', 'error');
     window.location.href = '/static/scenarios/';
 }
 
@@ -110,7 +110,7 @@ function reclassifyScenario() {
     const notes = document.getElementById('reviewNotes').value.trim();
 
     if (!notes) {
-        alert('Por favor justifica por qué estás reclasificando este escenario');
+        showToast('Por favor justifica por qué estás reclasificando este escenario', 'warning');
         return;
     }
 
@@ -172,7 +172,7 @@ function submitReview() {
     const finalNotes = document.getElementById('finalNotes').value.trim();
 
     if (!reviewerName) {
-        alert('Por favor ingresa tu nombre');
+        showToast('Por favor ingresa tu nombre', 'warning');
         return;
     }
 
