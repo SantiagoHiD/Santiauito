@@ -1,0 +1,486 @@
+Iniciando QualityAI Web App...
+Cargando modelo de embeddings...
+Modelo cargado
+✅ Base de conocimiento: 15 historias
+Servidor listo en http://localhost:3000
+ * Serving Flask app 'app'
+ * Debug mode: off
+
+============================================================
+Respuesta del LLM para AC AC-001:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro exitoso con datos válidos",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa la información del nuevo usuario (nombre, email, contraseña) con valores válidos"},
+        {"...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-002:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro fallido por email sin @",
+      "scenario_type": "negative",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "BVA",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa un email sin @"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-003:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión exitoso con credenciales válidas",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa y credenciales válidas"},
+        {"keyword": "When", "text": "El usuario ingresa su email y contraseña correctos"},
+        {"keyword": "Then", "text": "El sistema inicia la sesión del ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-004:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión con contraseña incorrecta",
+      "scenario_type": "negative",
+      "quality_characteristic": "security",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa"},
+        {"keyword": "When", "text": "El usuario ingresa una contraseña incorrecta"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y no inicia la sesión del usuario"}
+      ]...
+============================================================
+
+   Codigo volcado a: C:\Users\Admin\AppData\Local\Temp\m3_codigo_a7v6nroh
+   Codigo volcado a: C:\Users\Admin\AppData\Local\Temp\m3_codigo_c2kodhge
+
+============================================================
+Respuesta del LLM para AC AC-001:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro exitoso de un nuevo usuario con datos válidos",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa la información del nuevo usuario (nombre, email, contraseña) con valores v...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-002:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro fallido por email sin @",
+      "scenario_type": "negative",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "BVA",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa un email sin @"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-003:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión exitoso con credenciales válidas",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa y credenciales válidas"},
+        {"keyword": "When", "text": "El usuario ingresa su email y contraseña correctos"},
+        {"keyword": "Then", "text": "El sistema inicia la sesión del ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-004:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión con contraseña incorrecta",
+      "scenario_type": "negative",
+      "quality_characteristic": "security",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa"},
+        {"keyword": "When", "text": "El usuario ingresa una contraseña incorrecta"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y no inicia la sesión del usuario"}
+      ]...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-001:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro exitoso con información válida",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa la información del nuevo usuario (nombre, email, contraseña) con valores válidos"},
+     ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-002:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro fallido por email sin @",
+      "scenario_type": "negative",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "BVA",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa un email sin @"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-001:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro exitoso con datos válidos",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa la información del nuevo usuario (nombre: Juan Pérez, email: juan.perez@example.com, contraseñ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-001:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro exitoso con información válida",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa la información del nuevo usuario (nombre: Juan Pérez, email: juan.perez@example.com, cont...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-002:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro fallido por email sin @",
+      "scenario_type": "negative",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "BVA",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa un email sin @"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-003:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión exitoso con credenciales válidas",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa y credenciales válidas"},
+        {"keyword": "When", "text": "El usuario ingresa su email y contraseña correctos"},
+        {"keyword": "Then", "text": "El sistema inicia la sesión del ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-004:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión con contraseña incorrecta",
+      "scenario_type": "negative",
+      "quality_characteristic": "security",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa"},
+        {"keyword": "When", "text": "El usuario ingresa una contraseña incorrecta"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y no inicia la sesión del usuario"}
+      ]...
+============================================================
+
+   Codigo volcado a: C:\Users\Admin\AppData\Local\Temp\m3_codigo_g88h525t
+   Codigo volcado a: C:\Users\Admin\AppData\Local\Temp\m3_codigo_2a4y0y_j
+
+============================================================
+Respuesta del LLM para AC AC-001:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro exitoso con información válida",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa la información del nuevo usuario (nombre: Juan Pérez, email: juan.perez@example.com, cont...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-002:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro fallido por email sin @",
+      "scenario_type": "negative",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "BVA",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa un email sin @"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-003:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión exitoso con credenciales válidas",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa y credenciales válidas"},
+        {"keyword": "When", "text": "El usuario ingresa su email y contraseña correctos"},
+        {"keyword": "Then", "text": "El sistema inicia la sesión del ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-004:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión con contraseña incorrecta",
+      "scenario_type": "negative",
+      "quality_characteristic": "security",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa"},
+        {"keyword": "When", "text": "El usuario ingresa una contraseña incorrecta"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y no inicia la sesión del usuario"}
+      ]...
+============================================================
+
+   Codigo volcado a: C:\Users\Admin\AppData\Local\Temp\m3_codigo_cx19ttct
+
+============================================================
+Respuesta del LLM para AC AC-001:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro exitoso con información válida",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa la información del nuevo usuario (nombre, email, contraseña) con valores válidos"},
+     ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-002:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Registro fallido por email sin @",
+      "scenario_type": "negative",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "BVA",
+      "steps": [
+        {"keyword": "Given", "text": "El administrador está autenticado y tiene permisos para registrar usuarios"},
+        {"keyword": "When", "text": "El administrador ingresa un email sin @"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-003:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión exitoso con credenciales válidas",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa y credenciales válidas"},
+        {"keyword": "When", "text": "El usuario ingresa su email y contraseña correctos"},
+        {"keyword": "Then", "text": "El sistema inicia la sesión del ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-004:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Iniciar sesión con contraseña incorrecta",
+      "scenario_type": "negative",
+      "quality_characteristic": "security",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "El usuario tiene una cuenta activa"},
+        {"keyword": "When", "text": "El usuario ingresa una contraseña incorrecta"},
+        {"keyword": "Then", "text": "El sistema muestra un mensaje de error y no inicia la sesión del usuario"}
+      ]...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-001:
+============================================================
+A continuación, se presentan los escenarios Gherkin generados aplicando las técnicas de Equivalence Partitioning (EP), Boundary Value Analysis (BVA) y Decision Tables (DT), junto con su clasificación según la norma ISO/IEC 25010:
+
+```json
+{
+  "scenarios": [
+    {
+      "name": "Generación automática de reportes con período de generación válido",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-002:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "No generación de reportes sin datos",
+      "scenario_type": "negative",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "sistema configurado para generar reportes automáticamente"},
+        {"keyword": "When", "text": "no hay datos para generar el reporte"},
+        {"keyword": "Then", "text": "el sistema no genera el reporte"}
+      ]
+    },
+    {
+   ...
+============================================================
+
+
+============================================================
+Respuesta del LLM para AC AC-003:
+============================================================
+```json
+{
+  "scenarios": [
+    {
+      "name": "Envío de reporte a un usuario",
+      "scenario_type": "positive",
+      "quality_characteristic": "functional_suitability",
+      "heuristic_applied": "EP",
+      "steps": [
+        {"keyword": "Given", "text": "sistema configurado para enviar reportes a un usuario"},
+        {"keyword": "When", "text": "se genera un reporte"},
+        {"keyword": "Then", "text": "el sistema envía el reporte al usuario en menos de 5 segundos"}
+      ]
+    },
+    {...

@@ -1,0 +1,43 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Coverage / static analysis artifacts
+.pytest_cache/
+pytest-cache-files-*/
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+.complexipy_cache/
+complexipy-results.json
+
+# Outputs generados por los agentes
+output/
+knowledge_base_data/
+
+# Artefactos de la demo de herramientas
+examples/demo_herramientas/htmlcov/
+examples/demo_herramientas/.pytest_cache/
+examples/demo_herramientas/.coverage
+examples/demo_herramientas/.complexipy_cache/
+examples/demo_herramientas/__pycache__/
+
+# Test buggy generado por IA (material vivo de docencia)
+examples/demo_herramientas/test_calculadora.py
+
+# Archivos temporales
+test_perm.txt
+
+# Presentaciones (uso local)
+*.pptx
+*.pdf
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/

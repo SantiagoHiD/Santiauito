@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QualityAI - Requirements Refiner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/history/history.css">
+    <link rel="stylesheet" href="/components/user-menu.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .severity-alta {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .severity-media {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        .severity-baja {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .tab-active {
+            border-bottom: 3px solid #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .main-tab-active {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .main-tab-active:hover {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
+        }
+        
+        .main-tab-inactive {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            border: 2px solid transparent;
+        }
+        
+        .main-tab-inactive:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .story-card {
+            border-left: 4px solid #667eea;
+        }
+        
+        .criterion-card {
+            background: linear-gradient(to right, #f9fafb 0%, #ffffff 100%);
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-critical {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-high {
+            background-color: #fed7aa;
+            color: #9a3412;
+        }
+        
+        .badge-medium {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .badge-low {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-functional {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+        
+        .badge-non-functional {
+            background-color: #fce7f3;
+            color: #831843;
+        }
+        
+        .badge-technical {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+        <!-- Paleta: Indigo-Purple para headers en toda la app -->
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-8">
+                    <!-- Logo -->
+                    <div class="flex items-center space-x-4">
+                        <i class="fas fa-robot text-4xl"></i>
+                        <div>
+                            <h1 class="text-3xl font-bold">QualityAI</h1>
+                            <p class="text-purple-200 text-sm">Requirements Refiner</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Proyecto Actual -->
+                    <div class="flex items-center space-x-2 bg-white bg-opacity-20 px-4 py-2 rounded-lg">
+                        <i class="fas fa-folder text-white"></i>
+                        <div>
+                            <p class="text-xs text-purple-200">Proyecto:</p>
+                            <p class="font-semibold text-white" id="currentProjectName">Cargando...</p>
+                        </div>
+                        <button onclick="changeProject()" class="ml-2 text-white hover:text-purple-200 transition-colors" title="Cambiar proyecto">
+                            <i class="fas fa-exchange-alt"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Tabs Principales -->
+                    <div class="flex space-x-3">
+                        <button onclick="switchMainTab('generator')" id="main-tab-generator" class="main-tab-active px-6 py-3 rounded-lg font-semibold transition-all">
+                            <i class="fas fa-file-alt mr-2"></i>Nuevo Requerimiento
+                        </button>
+                        <button onclick="switchMainTab('history')" id="main-tab-history" class="main-tab-inactive px-6 py-3 rounded-lg font-semibold transition-all">
+                            <i class="fas fa-list mr-2"></i>Historias Generadas
+                        </button>
+                    </div>
+                </div>
+                <!-- Contenedor del menú de usuario (se carga dinámicamente) -->
+                <div id="userMenuContainer"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <!-- Contenedor del Generador -->
+        <div id="main-content-generator" class="main-content-section">
+        <!-- Tabs -->
+        <div class="bg-white rounded-lg shadow-md mb-6">
+            <div class="flex border-b">
+                <button onclick="switchTab('input')" id="tab-input" class="tab-active px-6 py-4 text-gray-700 hover:text-purple-600 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Entrada de Requerimientos
+                </button>
+                <button onclick="switchTab('ambiguities')" id="tab-ambiguities" class="px-6 py-4 text-gray-700 hover:text-purple-600 transition-colors">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Análisis de Ambigüedades
+                </button>
+                <button onclick="switchTab('results')" id="tab-results" class="px-6 py-4 text-gray-700 hover:text-purple-600 transition-colors">
+                    <i class="fas fa-check-circle mr-2"></i>Resultados
+                </button>
+                <button onclick="switchTab('code')" id="tab-code" class="px-6 py-4 text-gray-700 hover:text-purple-600 transition-colors">
+                    <i class="fas fa-magic mr-2"></i>Generar Código
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content: Input -->
+        <div id="content-input" class="tab-content">
+            <!-- Hero Section -->
+            <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 rounded-2xl shadow-2xl p-8 mb-8 text-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32"></div>
+                <div class="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full -ml-24 -mb-24"></div>
+                <div class="relative z-10">
+                    <div class="mb-6">
+                        <h1 class="text-3xl font-bold mb-2">✨ Transforme sus Requerimientos en Historias de Usuario</h1>
+                    </div>
+                    
+                    <!-- Stepper Visual -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-white text-indigo-600 rounded-full w-10 h-10 flex items-center justify-center font-bold">1</div>
+                                <div>
+                                    <div class="font-semibold text-sm">Ingreso</div>
+                                    <div class="text-xs text-indigo-100">Requerimiento</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-white text-purple-600 rounded-full w-10 h-10 flex items-center justify-center font-bold">2</div>
+                                <div>
+                                    <div class="font-semibold text-sm">Análisis</div>
+                                    <div class="text-xs text-indigo-100">Ambigüedades</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-white text-indigo-600 rounded-full w-10 h-10 flex items-center justify-center font-bold">3</div>
+                                <div>
+                                    <div class="font-semibold text-sm">Resolución</div>
+                                    <div class="text-xs text-indigo-100">Validación</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-white text-purple-600 rounded-full w-10 h-10 flex items-center justify-center font-bold">✓</div>
+                                <div>
+                                    <div class="font-semibold text-sm">Generación</div>
+                                    <div class="text-xs text-indigo-100">Historias de Usuario</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Card -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+                        <div class="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-lg w-12 h-12 flex items-center justify-center shadow-lg">
+                                    <i class="fas fa-pen-fancy text-xl"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-800">Editor de Requerimientos</h2>
+                                    <p class="text-sm text-gray-500">Escriba o pegue su requerimiento aquí</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <textarea 
+                                id="requirementInput" 
+                                rows="10" 
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all resize-none text-gray-700 leading-relaxed"
+                                placeholder="Ejemplo: El sistema debe permitir a los usuarios registrarse de forma segura, validando su correo electrónico y creando una contraseña robusta que cumpla con los estándares de seguridad..."
+                            ></textarea>
+                            <div class="flex justify-between items-center mt-3">
+                                <span id="charCount" class="text-sm text-gray-400 flex items-center">
+                                    <i class="fas fa-keyboard mr-2"></i>0 caracteres
+                                </span>
+                                <div class="flex items-center space-x-2 text-sm text-gray-500">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>Mínimo 15 caracteres requeridos</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-t border-gray-100 relative">
+                            <div class="flex justify-center">
+                                <button 
+                                    id="startProcessBtn"
+                                    onclick="startProcess()" 
+                                    disabled
+                                    class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    style="max-width: 400px;"
+                                >
+                                    <i class="fas fa-rocket text-2xl"></i>
+                                    <span>Iniciar Análisis Inteligente</span>
+                                </button>
+                            </div>
+                            <button onclick="clearInput()" class="absolute right-6 top-1/2 -translate-y-1/2 px-4 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex items-center">
+                                <i class="fas fa-trash mr-2"></i>Limpiar
+                            </button>
+                        </div>
+            </div>
+
+            <!-- Grid de 2 columnas: Ejemplos y Consejos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Quick Examples -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+                        <div class="flex items-center space-x-3 mb-5">
+                            <div class="bg-gradient-to-br from-yellow-400 to-orange-500 text-white rounded-lg w-10 h-10 flex items-center justify-center">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Ejemplos Rápidos</h3>
+                                <p class="text-sm text-gray-500">Click para cargar un ejemplo</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 gap-3">
+                            <button onclick="loadExample(1)" class="group text-left p-4 bg-gradient-to-r from-gray-50 to-white hover:from-indigo-50 hover:to-purple-50 rounded-lg transition-all border-2 border-gray-200 hover:border-indigo-300 shadow-sm hover:shadow-md">
+                                <div class="flex items-start space-x-3">
+                                    <div class="bg-indigo-100 text-indigo-600 rounded-lg w-8 h-8 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-semibold text-gray-800 mb-1">Gestión de Usuarios</div>
+                                        <p class="text-sm text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis">Sistema de registro y autenticación segura</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400 group-hover:text-indigo-600 transition-all flex-shrink-0"></i>
+                                </div>
+                            </button>
+                            <button onclick="loadExample(2)" class="group text-left p-4 bg-gradient-to-r from-gray-50 to-white hover:from-indigo-50 hover:to-purple-50 rounded-lg transition-all border-2 border-gray-200 hover:border-indigo-300 shadow-sm hover:shadow-md">
+                                <div class="flex items-start space-x-3">
+                                    <div class="bg-purple-100 text-purple-600 rounded-lg w-8 h-8 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-semibold text-gray-800 mb-1">Generación de Reportes</div>
+                                        <p class="text-sm text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis">Reportes automáticos con alta calidad</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400 group-hover:text-purple-600 transition-all flex-shrink-0"></i>
+                                </div>
+                            </button>
+                            <button onclick="loadExample(3)" class="group text-left p-4 bg-gradient-to-r from-gray-50 to-white hover:from-indigo-50 hover:to-purple-50 rounded-lg transition-all border-2 border-gray-200 hover:border-indigo-300 shadow-sm hover:shadow-md">
+                                <div class="flex items-start space-x-3">
+                                    <div class="bg-indigo-100 text-indigo-600 rounded-lg w-8 h-8 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-semibold text-gray-800 mb-1">Sistema de Consultas</div>
+                                        <p class="text-sm text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis">Interfaz rápida e intuitiva para usuarios</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400 group-hover:text-indigo-600 transition-all flex-shrink-0"></i>
+                                </div>
+                            </button>
+                        </div>
+                </div>
+
+                <!-- Tips Card -->
+                    <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl shadow-lg border-2 border-purple-200 p-6">
+                        <div class="flex items-center space-x-3 mb-6">
+                            <div class="bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-xl w-12 h-12 flex items-center justify-center shadow-md">
+                                <i class="fas fa-lightbulb text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">Consejos Útiles</h3>
+                                <p class="text-sm text-gray-600">Para obtener mejores resultados</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-start space-x-3 bg-white rounded-lg p-3 shadow-sm">
+                                <div class="bg-purple-100 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <i class="fas fa-check text-purple-600 text-xs"></i>
+                                </div>
+                                <span class="text-base text-gray-700 leading-relaxed">Describa con detalle lo que necesita</span>
+                            </div>
+                            <div class="flex items-start space-x-3 bg-white rounded-lg p-3 shadow-sm">
+                                <div class="bg-purple-100 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <i class="fas fa-check text-purple-600 text-xs"></i>
+                                </div>
+                                <span class="text-base text-gray-700 leading-relaxed">Explique quién usará el sistema</span>
+                            </div>
+                            <div class="flex items-start space-x-3 bg-white rounded-lg p-3 shadow-sm">
+                                <div class="bg-purple-100 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <i class="fas fa-check text-purple-600 text-xs"></i>
+                                </div>
+                                <span class="text-base text-gray-700 leading-relaxed">Indique limitaciones o restricciones</span>
+                            </div>
+                            <div class="flex items-start space-x-3 bg-white rounded-lg p-3 shadow-sm">
+                                <div class="bg-purple-100 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <i class="fas fa-check text-purple-600 text-xs"></i>
+                                </div>
+                                <span class="text-base text-gray-700 leading-relaxed">Defina qué considera un resultado exitoso</span>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Ambiguities -->
+        <div id="content-ambiguities" class="tab-content hidden">
+            <!-- Segmented Control Navigation -->
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Análisis de Ambigüedades</h2>
+                    <p class="text-sm text-gray-500 mt-1">Revisa y resuelve las ambigüedades detectadas</p>
+                </div>
+                <div class="inline-flex bg-gray-100 rounded-lg p-1">
+                    <button onclick="switchAmbiguitySubTab('summary')" id="subtab-summary" class="px-6 py-2.5 rounded-md font-medium text-sm bg-white text-indigo-600 shadow-sm transition-all">
+                        <i class="fas fa-list-ul mr-2"></i>Resumen
+                    </button>
+                    <button onclick="switchAmbiguitySubTab('resolution')" id="subtab-resolution" class="px-6 py-2.5 rounded-md font-medium text-sm text-gray-400 cursor-not-allowed transition-all" disabled>
+                        <i class="fas fa-tasks mr-2"></i>Resolver
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Resumen del Análisis -->
+            <div id="ambiguity-subtab-summary" class="ambiguity-subtab-content">
+                <div id="ambiguitiesContainer">
+                    <!-- Estado vacío: Sin requerimiento -->
+                    <div id="noRequirementState" class="flex items-center justify-center" style="min-height: 60vh;">
+                        <div class="text-center max-w-lg">
+                            <div class="mb-8">
+                                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl mb-6">
+                                    <i class="fas fa-search text-4xl text-indigo-600"></i>
+                                </div>
+                                <h2 class="text-3xl font-bold text-gray-800 mb-3">No hay análisis disponible</h2>
+                                <p class="text-gray-500 text-lg mb-8">Ingresa un requerimiento para detectar automáticamente las ambigüedades</p>
+                                <button onclick="switchTab('input')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
+                                    Ir a Entrada de Requerimientos
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Estado: Sin ambigüedades (requerimiento procesado limpio) -->
+                    <div id="noAmbiguitiesState" class="hidden flex items-center justify-center" style="min-height: 60vh;">
+                        <div class="text-center max-w-lg">
+                            <div class="mb-8">
+                                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl mb-6">
+                                    <i class="fas fa-check-circle text-4xl text-green-600"></i>
+                                </div>
+                                <h2 class="text-3xl font-bold text-gray-800 mb-3">¡Excelente! No se encontraron ambigüedades</h2>
+                                <p class="text-gray-600 text-lg mb-2" id="noAmbiguitiesRequirementTitle">Tu requerimiento está claro y listo</p>
+                                <p class="text-gray-500 mb-8">Puedes continuar directamente a generar las historias de usuario</p>
+                                <button onclick="switchTab('results')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg">
+                                    Ver Resultados
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Estado: Ambigüedades ya resueltas (historias generadas) -->
+                    <div id="ambiguitiesResolvedState" class="hidden flex items-center justify-center" style="min-height: 60vh;">
+                        <div class="text-center max-w-lg">
+                            <div class="mb-8">
+                                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl mb-6">
+                                    <i class="fas fa-check-double text-4xl text-blue-600"></i>
+                                </div>
+                                <h2 class="text-3xl font-bold text-gray-800 mb-3">Ambigüedades Resueltas</h2>
+                                <p class="text-gray-600 text-lg mb-2">Las ambigüedades detectadas ya fueron resueltas</p>
+                                <p class="text-gray-500 mb-8">Las historias de usuario han sido generadas exitosamente</p>
+                                <button onclick="switchTab('results')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
+                                    Ver Historias Generadas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Resolver Ambigüedades -->
+            <div id="ambiguity-subtab-resolution" class="ambiguity-subtab-content hidden">
+                <div id="resolutionPanel" class="hidden">
+                    <!-- Header con progreso -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
+                                    <i class="fas fa-user-check text-xl"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-800">Resolver Ambigüedades</h2>
+                                    <p class="text-sm text-gray-500">Decide cómo aclarar cada punto detectado</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-6">
+                                <div class="text-right">
+                                    <div class="text-2xl font-bold text-indigo-600">
+                                        <span id="resolvedCount">0</span><span class="text-gray-300 mx-1">/</span><span id="totalAmbCount">0</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 uppercase tracking-wide">Completadas</p>
+                                </div>
+                                <div class="w-32">
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div id="progressBar" class="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Botón de acción rápida -->
+                        <div class="flex items-center justify-start pt-4 border-t border-gray-200">
+                            <button onclick="showAcceptAllModal()" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all shadow-sm hover:shadow-md">
+                                <i class="fas fa-check-double mr-2"></i>
+                                Aceptar Todas las Sugerencias
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Resolution Items -->
+                    <div class="space-y-4 mb-6" id="resolutionItems"></div>
+                    
+                    <!-- Action Bar -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm text-gray-600">
+                                <i class="fas fa-info-circle text-indigo-600 mr-2"></i>
+                                Resuelve todas las ambigüedades para continuar
+                            </p>
+                            <div class="flex items-center space-x-3">
+                                <button onclick="cancelResolutions()" 
+                                        class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all">
+                                    Cancelar
+                                </button>
+                                <button onclick="submitResolutions()" 
+                                        id="submitResolutionsBtn"
+                                        class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Generar Historias
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tooltips -->
+                    <div id="tooltipInstructions" class="hidden fixed bg-gray-900 text-white text-sm rounded-lg p-4 shadow-2xl z-50 max-w-sm">
+                        <div class="flex items-start space-x-2">
+                            <i class="fas fa-lightbulb text-yellow-400 mt-0.5"></i>
+                            <div>
+                                <p class="font-semibold mb-2">¿Cómo funciona?</p>
+                                <ul class="space-y-1 text-xs text-gray-300">
+                                    <li>✓ <strong>Aceptar:</strong> Usar la sugerencia de IA</li>
+                                    <li>✓ <strong>Personalizar:</strong> Escribir su propia resolución</li>
+                                    <li>✓ <strong>Descartar:</strong> Ignorar esta ambigüedad</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2">
+                            <div class="border-8 border-transparent border-b-gray-900"></div>
+                        </div>
+                    </div>
+                    <div id="tooltipCancel" class="hidden fixed bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl z-50">
+                        Descartar cambios y volver
+                    </div>
+                    <div id="tooltipSubmit" class="hidden fixed bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl z-50">
+                        Generar historias con las resoluciones
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Results -->
+        <div id="content-results" class="tab-content hidden">
+            <!-- Segmented Control Navigation -->
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Historias de Usuario</h2>
+                    <p class="text-sm text-gray-500 mt-1">Revisa las historias generadas y continúa al módulo de pruebas</p>
+                </div>
+                <div class="inline-flex bg-gray-100 rounded-lg p-1">
+                    <button onclick="switchResultsSubTab('stories')" id="subtab-stories" class="px-6 py-2.5 rounded-md font-medium text-sm bg-white text-indigo-600 shadow-sm transition-all">
+                        <i class="fas fa-list mr-2"></i>Historias
+                    </button>
+                    <button onclick="switchResultsSubTab('scenarios')" id="subtab-scenarios" class="px-6 py-2.5 rounded-md font-medium text-sm text-gray-400 cursor-not-allowed transition-all" disabled>
+                        <i class="fas fa-vial mr-2"></i>Escenarios de Prueba
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Historias de Usuario -->
+            <div id="results-subtab-stories" class="results-subtab-content">
+                <div id="resultsContainer">
+                    <!-- Estado 1: Sin requerimiento procesado -->
+                    <div id="noStoriesState" class="flex items-center justify-center" style="min-height: 60vh;">
+                        <div class="text-center max-w-lg">
+                            <div class="mb-8">
+                                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl mb-6">
+                                    <i class="fas fa-clipboard-list text-4xl text-indigo-600"></i>
+                                </div>
+                                <h2 class="text-3xl font-bold text-gray-800 mb-3">No hay historias disponibles</h2>
+                                <p class="text-gray-500 text-lg mb-8">Ingresa un requerimiento para generar historias de usuario automáticamente</p>
+                                <button onclick="switchTab('input')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
+                                    Ir a Entrada de Requerimientos
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Estado 2: Con ambigüedades pendientes -->
+                    <div id="pendingAmbiguitiesState" class="hidden" style="min-height: 60vh;">
+                        <div class="text-center max-w-lg">
+                            <div class="mb-8">
+                                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-100 to-red-100 rounded-2xl mb-6">
+                                    <i class="fas fa-exclamation-triangle text-4xl text-orange-600"></i>
+                                </div>
+                                <h2 class="text-3xl font-bold text-gray-800 mb-3">Tienes ambigüedades pendientes por resolver</h2>
+                                <p class="text-gray-600 text-lg mb-2">Antes de generar las historias de usuario,</p>
+                                <p class="text-gray-500 mb-8">debes resolver las ambigüedades detectadas en tu requerimiento</p>
+                                <button onclick="switchTab('ambiguities')" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg font-semibold hover:from-orange-700 hover:to-red-700 transition-all shadow-md hover:shadow-lg">
+                                    Resolver Ambigüedades
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Escenarios de Prueba (Módulo 2) -->
+            <div id="results-subtab-scenarios" class="results-subtab-content hidden">
+                <!-- Estado vacío -->
+                <div id="scenariosEmptyState" class="text-center py-20">
+                    <div class="mb-6">
+                        <i class="fas fa-vial text-gray-300 text-6xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">No hay escenarios de prueba generados</h3>
+                    <p class="text-gray-600 text-lg mb-6">
+                        Primero debes generar los escenarios de prueba desde el sub-tab de Historias
+                    </p>
+                    <button onclick="switchResultsSubTab('stories')" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
+                        Ir a Historias
+                    </button>
+                </div>
+                
+                <!-- Contenedor de escenarios generados -->
+                <div id="module2Content" class="hidden">
+                    <!-- Se llenará dinámicamente cuando se generen los escenarios -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Código Generado (M3) — inline, no modal -->
+        <div id="content-code" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                            <i class="fas fa-code text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold">Contract C — Código Generado</h3>
+                            <p class="text-indigo-100 text-sm">Código Python + Tests Pytest + Quality Report</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métricas rápidas -->
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center space-x-6">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-file-code text-purple-600"></i>
+                            <span class="text-sm font-semibold text-gray-700">Módulos:</span>
+                            <span id="codeTotalModules" class="text-lg font-bold text-purple-600">0</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-vial text-green-600"></i>
+                            <span class="text-sm font-semibold text-gray-700">Tests:</span>
+                            <span id="codeTotalTests" class="text-lg font-bold text-green-600">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-tabs: Código / Tests / Quality / Trazabilidad / Cobertura -->
+                <div class="px-6 pt-4 border-b border-gray-200 bg-white">
+                    <div class="flex space-x-2 overflow-x-auto">
+                        <button onclick="switchCodeTab('modules')" id="code-tab-btn-modules" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition-all">
+                            <i class="fas fa-file-code mr-2"></i>Código
+                        </button>
+                        <button onclick="switchCodeTab('tests')" id="code-tab-btn-tests" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 transition-all">
+                            <i class="fas fa-vial mr-2"></i>Tests
+                        </button>
+                        <button onclick="switchCodeTab('quality')" id="code-tab-btn-quality" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 transition-all">
+                            <i class="fas fa-chart-bar mr-2"></i>Quality Report
+                        </button>
+                        <button onclick="switchCodeTab('traceability')" id="code-tab-btn-traceability" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 transition-all">
+                            <i class="fas fa-project-diagram mr-2"></i>Trazabilidad
+                        </button>
+                        <button onclick="switchCodeTab('coverage')" id="code-tab-btn-coverage" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 transition-all">
+                            <i class="fas fa-shield-alt mr-2"></i>Cobertura
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sub-tab Content -->
+                <div class="p-6 bg-white overflow-y-auto" style="max-height: 65vh;">
+                    <div id="code-tab-modules" class="code-tab-content"></div>
+                    <div id="code-tab-tests" class="code-tab-content hidden"></div>
+                    <div id="code-tab-quality" class="code-tab-content hidden"></div>
+                    <div id="code-tab-traceability" class="code-tab-content hidden"></div>
+                    <div id="code-tab-coverage" class="code-tab-content hidden"></div>
+                </div>
+
+                <!-- Actions -->
+                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <button onclick="generateCode()" class="px-5 py-2.5 border-2 border-purple-300 text-purple-700 rounded-lg font-semibold hover:bg-purple-50 transition-all">
+                        <i class="fas fa-sync-alt mr-2"></i>Regenerar
+                    </button>
+                    <div class="flex space-x-3">
+                        <button onclick="downloadCodeReport()" class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all shadow-md">
+                            <i class="fas fa-file-pdf mr-2"></i>Descargar Reporte
+                        </button>
+                        <button id="startCodeReviewBtn" onclick="startCodeReview()" class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md">
+                            <i class="fas fa-clipboard-check mr-2"></i>Revisar Código Manualmente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+        <!-- Fin Contenedor del Generador -->
+
+        <!-- Contenedor del Historial -->
+        <div id="main-content-history" class="main-content-section hidden">
+            <div id="history-page-content">
+                <!-- El contenido del historial se cargará aquí -->
+            </div>
+        </div>
+        <!-- Fin Contenedor del Historial -->
+
+    </main>
+
+    <!-- Incluir Modal de Historial (módulo separado) -->
+    <div id="historyModalContainer"></div>
+
+    <!-- Code Review Modal (M3 V4 - HITL) -->
+    <div id="codeReviewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full mx-4 my-8 overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user-check text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold">Revisión de Código — Desarrollador Senior</h3>
+                            <p class="text-indigo-100 text-sm">Revisa cada módulo y emite tu veredicto final</p>
+                        </div>
+                    </div>
+                    <button onclick="closeCodeReviewModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="bg-indigo-50 px-6 py-4 border-b border-indigo-200">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-semibold text-gray-700">Progreso de Revisión</span>
+                    <span class="text-sm font-bold text-indigo-600"><span id="codeReviewCurrentIndex">1</span> de <span id="codeReviewTotalModules">0</span></span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="codeReviewProgressBar" class="bg-gradient-to-r from-purple-600 to-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6 max-h-96 overflow-y-auto" id="codeReviewContent"></div>
+
+            <!-- Actions (while reviewing) -->
+            <div id="codeReviewActions" class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1 mr-4">
+                        <input type="text" id="codeReviewNotes" placeholder="Escribe tu observación como revisor senior..." class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-sm">
+                        <div id="codeReviewCommentsList" class="mt-2 space-y-1"></div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="skipCodeModule()" class="px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-100 transition-all text-sm">
+                            <i class="fas fa-forward mr-1"></i>Saltar
+                        </button>
+                        <button onclick="commentCodeModule()" class="px-4 py-2.5 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all shadow-md text-sm">
+                            <i class="fas fa-comment mr-1"></i>Comentar Smell
+                        </button>
+                        <button onclick="acceptCodeModule()" class="px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md text-sm">
+                            <i class="fas fa-check mr-1"></i>Aceptar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Final Review Section -->
+            <div id="codeReviewFinalSection" class="hidden bg-white p-6 border-t border-gray-200">
+                <h4 class="text-xl font-bold text-gray-800 mb-4">Completar Revisión de Código</h4>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Nombre del Desarrollador Senior:</label>
+                    <input type="text" id="codeReviewerName" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none" placeholder="Tu nombre completo">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Veredicto:</label>
+                    <select id="codeReviewDecision" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                        <option value="approved">✅ APROBAR - El código está listo para producción</option>
+                        <option value="needs_changes">⚠️ SOLICITAR CAMBIOS - Se requieren ajustes</option>
+                        <option value="rejected">❌ RECHAZAR - No cumple con los estándares</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Comentario final:</label>
+                    <textarea id="codeReviewFinalNotes" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none" rows="3" placeholder="Feedback general sobre el código generado..."></textarea>
+                </div>
+                <button onclick="submitCodeReview()" class="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg">
+                    <i class="fas fa-signature mr-2"></i>Firmar y Finalizar Revisión
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accept All Modal -->
+    <div id="acceptAllModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-check-double text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold">Aceptar Todas las Sugerencias</h3>
+                        <p class="text-emerald-100 text-sm">Las ambigüedades se resolverán automáticamente</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-4">¿Estás seguro de aceptar todas las sugerencias de IA?</p>
+                <p class="text-sm text-gray-500 mb-6">Se aplicarán las soluciones propuestas a <strong id="modalAmbCount">0</strong> ambigüedades.</p>
+                <div class="flex justify-end space-x-3">
+                    <button onclick="closeAcceptAllModal()" class="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-100 transition-all">
+                        Cancelar
+                    </button>
+                    <button onclick="confirmAcceptAll()" class="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md">
+                        <i class="fas fa-check mr-2"></i>Aceptar Todas
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full mx-4 my-8 overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-600 to-green-600 p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                            <i class="fas fa-file-alt text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold">Reporte de Revisión de Código</h3>
+                            <p class="text-emerald-100 text-sm">Documento completo de código generado y revisión</p>
+                        </div>
+                    </div>
+                    <button onclick="closeReportModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="reportModalContent" class="p-6 max-h-[65vh] overflow-y-auto"></div>
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-end space-x-3">
+                <button onclick="downloadReportAsPdf()" class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all shadow-md">
+                    <i class="fas fa-file-pdf mr-2"></i>Descargar PDF
+                </button>
+                <button onclick="closeReportModal()" class="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-100 transition-all">
+                    <i class="fas fa-times mr-2"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Groq Error Modal -->
+    <div id="groqErrorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+            <div id="errorModalHeader" class="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
+                <div class="flex items-center space-x-3">
+                    <div id="errorModalIcon" class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-exclamation-circle text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 id="errorModalTitle" class="text-xl font-bold">Error en API</h3>
+                        <p id="errorModalSubtitle" class="text-red-100 text-sm">Problema al procesar la solicitud</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <div id="errorModalInfo" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-4">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-red-600 mt-0.5 mr-3"></i>
+                        <p id="errorModalMessage" class="text-sm text-red-800"></p>
+                    </div>
+                </div>
+                <h4 class="font-bold text-gray-700 mb-2">Posibles soluciones:</h4>
+                <ul id="errorModalSolutions" class="space-y-2 text-sm text-gray-600 mb-6 list-disc list-inside"></ul>
+                <button onclick="closeGroqErrorModal()" class="w-full px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all shadow-md">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+                <h3 class="text-xl font-bold">Configurar API Key</h3>
+                <p class="text-indigo-100 text-sm">Ingresa tu API Key de Groq</p>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">API Key</label>
+                    <input type="password" id="apiKeyInput" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none" placeholder="gsk_...">
+                </div>
+                <div class="mb-4">
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" id="showApiKey" class="w-4 h-4 text-purple-600">
+                        <span class="text-sm text-gray-600">Mostrar API Key</span>
+                    </label>
+                </div>
+                <button onclick="saveApiKey()" class="w-full px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md">
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full mx-4 text-center">
+            <div class="mb-6">
+                <div class="inline-block relative">
+                    <div class="w-20 h-20 border-4 border-indigo-200 rounded-full"></div>
+                    <div class="w-20 h-20 border-4 border-transparent border-t-purple-600 rounded-full absolute inset-0 animate-spin"></div>
+                    <div class="w-12 h-12 border-4 border-transparent border-t-pink-500 rounded-full absolute inset-0 animate-spin" style="animation-duration: 0.6s; margin: 4px;"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <i class="fas fa-magic text-2xl text-indigo-600"></i>
+                    </div>
+                </div>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2 animate-pulse">Procesando...</h3>
+            <p id="loadingMessage" class="text-gray-500 text-lg">Por favor espere</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="/history/history.js"></script>
+    <script src="/components/user-menu.js"></script>
+    <script>
+        // Cargar el modal de historial dinámicamente
+        fetch('/history/history.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('historyModalContainer').innerHTML = html;
+            })
+            .catch(error => console.error('Error cargando historial:', error));
+        
+        // Cargar el menú de usuario dinámicamente
+        fetch('/components/user-menu.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('userMenuContainer').innerHTML = html;
+            })
+            .catch(error => console.error('Error cargando menú de usuario:', error));
+    </script>
+</body>
+</html>

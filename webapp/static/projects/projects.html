@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleccionar Proyecto - QualityAI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-brain text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">QualityAI</h1>
+                        <p class="text-sm text-gray-500">Gestión de Proyectos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-12">
+        <!-- Welcome Section -->
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                Bienvenido a QualityAI
+            </h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Selecciona un proyecto existente o crea uno nuevo para comenzar a gestionar tus requerimientos
+            </p>
+        </div>
+
+        <!-- Create New Project Button -->
+        <div class="max-w-4xl mx-auto mb-8">
+            <button onclick="showCreateProjectModal()" 
+                    class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 px-6 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <i class="fas fa-plus-circle mr-3 text-xl"></i>
+                <span class="text-lg font-semibold">Crear Nuevo Proyecto</span>
+            </button>
+        </div>
+
+        <!-- Projects List -->
+        <div class="max-w-4xl mx-auto">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fas fa-folder-open mr-3 text-indigo-600"></i>
+                Mis Proyectos
+            </h3>
+            
+            <div id="projectsList" class="space-y-4">
+                <!-- Se llenará dinámicamente -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-16">
+                <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500 text-lg mb-4">No tienes proyectos aún</p>
+                <p class="text-gray-400">Crea tu primer proyecto para comenzar</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Project Modal -->
+    <div id="editProjectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-2xl font-bold text-white flex items-center">
+                        <i class="fas fa-edit mr-3"></i>
+                        Editar Proyecto
+                    </h3>
+                    <button onclick="closeEditProjectModal()" class="text-white hover:text-gray-200 transition-colors">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-2 text-indigo-600"></i>
+                        Nombre del Proyecto
+                    </label>
+                    <input type="text" id="editProjectName" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                           placeholder="Ej: Sistema de Gestión de Usuarios"
+                           maxlength="100">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-align-left mr-2 text-indigo-600"></i>
+                        Descripción (Opcional)
+                    </label>
+                    <textarea id="editProjectDescription" rows="3"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Describe brevemente el proyecto..."
+                              maxlength="500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-palette mr-2 text-indigo-600"></i>
+                        Color del Proyecto
+                    </label>
+                    <div class="grid grid-cols-6 gap-2">
+                        <button onclick="selectEditColor('indigo')" class="edit-color-option w-10 h-10 rounded-lg bg-indigo-500 hover:ring-2 ring-indigo-600" data-color="indigo"></button>
+                        <button onclick="selectEditColor('purple')" class="edit-color-option w-10 h-10 rounded-lg bg-purple-500 hover:ring-2 ring-purple-600" data-color="purple"></button>
+                        <button onclick="selectEditColor('blue')" class="edit-color-option w-10 h-10 rounded-lg bg-blue-500 hover:ring-2 ring-blue-600" data-color="blue"></button>
+                        <button onclick="selectEditColor('green')" class="edit-color-option w-10 h-10 rounded-lg bg-green-500 hover:ring-2 ring-green-600" data-color="green"></button>
+                        <button onclick="selectEditColor('amber')" class="edit-color-option w-10 h-10 rounded-lg bg-amber-500 hover:ring-2 ring-amber-600" data-color="amber"></button>
+                        <button onclick="selectEditColor('rose')" class="edit-color-option w-10 h-10 rounded-lg bg-rose-500 hover:ring-2 ring-rose-600" data-color="rose"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-end space-x-3">
+                <button onclick="closeEditProjectModal()" 
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all">
+                    Cancelar
+                </button>
+                <button onclick="saveEditProject()" 
+                        class="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all">
+                    <i class="fas fa-save mr-2"></i>
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="createProjectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-2xl font-bold text-white flex items-center">
+                        <i class="fas fa-folder-plus mr-3"></i>
+                        Nuevo Proyecto
+                    </h3>
+                    <button onclick="closeCreateProjectModal()" class="text-white hover:text-gray-200 transition-colors">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-2 text-indigo-600"></i>
+                        Nombre del Proyecto
+                    </label>
+                    <input type="text" id="projectName" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                           placeholder="Ej: Sistema de Gestión de Usuarios"
+                           maxlength="100">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-align-left mr-2 text-indigo-600"></i>
+                        Descripción (Opcional)
+                    </label>
+                    <textarea id="projectDescription" rows="3"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Describe brevemente el proyecto..."
+                              maxlength="500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-palette mr-2 text-indigo-600"></i>
+                        Color del Proyecto
+                    </label>
+                    <div class="grid grid-cols-6 gap-2">
+                        <button onclick="selectColor('indigo')" class="color-option w-10 h-10 rounded-lg bg-indigo-500 hover:ring-2 ring-indigo-600" data-color="indigo"></button>
+                        <button onclick="selectColor('purple')" class="color-option w-10 h-10 rounded-lg bg-purple-500 hover:ring-2 ring-purple-600" data-color="purple"></button>
+                        <button onclick="selectColor('blue')" class="color-option w-10 h-10 rounded-lg bg-blue-500 hover:ring-2 ring-blue-600" data-color="blue"></button>
+                        <button onclick="selectColor('green')" class="color-option w-10 h-10 rounded-lg bg-green-500 hover:ring-2 ring-green-600" data-color="green"></button>
+                        <button onclick="selectColor('amber')" class="color-option w-10 h-10 rounded-lg bg-amber-500 hover:ring-2 ring-amber-600" data-color="amber"></button>
+                        <button onclick="selectColor('rose')" class="color-option w-10 h-10 rounded-lg bg-rose-500 hover:ring-2 ring-rose-600" data-color="rose"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-end space-x-3">
+                <button onclick="closeCreateProjectModal()" 
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all">
+                    Cancelar
+                </button>
+                <button onclick="createProject()" 
+                        class="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all">
+                    <i class="fas fa-check mr-2"></i>
+                    Crear Proyecto
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 flex flex-col items-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
+            <p class="text-gray-700 font-semibold" id="loadingText">Cargando...</p>
+        </div>
+    </div>
+
+    <script src="projects.js"></script>
+</body>
+</html>

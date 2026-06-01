@@ -1,0 +1,20 @@
+# Modulo 3 - Code Generator Agent (QualityAI)
+# Instalar con: pip install -r requirements.txt
+
+# LLM y configuracion
+groq>=0.11.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# RAG (V1)
+sentence-transformers>=2.5.0
+chromadb>=0.4.20
+
+# Analisis estatico (V2)
+radon>=6.0.1
+complexipy>=1.0.0
+bandit>=1.7.5
+
+# Testing y coverage (V3)
+pytest>=7.4.0
+pytest-cov>=4.1.0

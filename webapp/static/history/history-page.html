@@ -1,0 +1,29 @@
+<!-- Contenido del Historial como Página Completa -->
+<div class="bg-white rounded-lg shadow-md p-6">
+    <!-- Header de Historias -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <h3 class="text-2xl font-bold text-gray-800">
+                <i class="fas fa-book mr-2 text-indigo-600"></i>Historias de Usuario Generadas
+            </h3>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-600">
+                    <span id="count-stories-page">0</span> historias generadas
+                </span>
+                <button onclick="loadHistory()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all">
+                    <i class="fas fa-sync-alt mr-2"></i>Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor de Historial -->
+    <div id="history-content-page" class="history-content">
+        <div class="text-center py-12 text-gray-500">
+            <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+            <p>Cargando historial...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación de Eliminación (reutilizado) -->

@@ -1,0 +1,104 @@
+<!-- Overlay para cerrar el menú al hacer click fuera -->
+<div class="menu-overlay" id="menuOverlay" onclick="closeUserMenu()"></div>
+
+<!-- Menú de Usuario -->
+<div class="user-menu-container">
+    <button class="user-menu-button" id="userMenuButton" onclick="toggleUserMenu()">
+        <div class="user-avatar">
+            <i class="fas fa-user"></i>
+        </div>
+        <div class="user-info">
+            <div class="user-name">Usuario</div>
+            <div class="user-status">
+                <span class="status-dot active"></span>
+                <span id="userStatusText">Sistema Activo</span>
+            </div>
+        </div>
+        <i class="fas fa-chevron-down dropdown-arrow"></i>
+    </button>
+
+    <!-- Dropdown Menu -->
+    <div class="user-dropdown" id="userDropdown">
+        <!-- Header del dropdown -->
+        <div class="dropdown-header">
+            <div class="dropdown-header-title">Panel de Control</div>
+            <div class="dropdown-header-user">
+                <div class="dropdown-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="dropdown-user-info">
+                    <h3>Usuario QualityAI</h3>
+                    <p>Gestiona tu configuración</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado del Sistema -->
+        <div class="system-status-section">
+            <div class="system-status-title">Estado del Sistema</div>
+            <div class="status-card" id="systemStatusCard">
+                <div class="status-info">
+                    <div class="status-icon active" id="statusIcon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="status-text">
+                        <h4 id="statusTitle">Sistema Operativo</h4>
+                        <p id="statusDescription">Todos los servicios funcionando</p>
+                    </div>
+                </div>
+                <span class="status-badge active" id="statusBadge">ACTIVO</span>
+            </div>
+        </div>
+
+        <!-- Items del menú -->
+        <div class="menu-items">
+            <!-- API Key -->
+            <button class="menu-item" onclick="openApiKeyModal(); closeUserMenu();">
+                <div class="menu-item-icon" style="background: #e0e7ff; color: #667eea;">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div class="menu-item-content">
+                    <div class="menu-item-title">Configurar API Key</div>
+                    <div class="menu-item-description">Groq API para IA generativa</div>
+                </div>
+                <i class="fas fa-chevron-right" style="color: #d1d5db; font-size: 12px;"></i>
+            </button>
+
+            <div class="menu-divider"></div>
+
+            <!-- Historial -->
+            <button class="menu-item" onclick="openHistoryModal(); closeUserMenu();">
+                <div class="menu-item-icon" style="background: #e0e7ff; color: #764ba2;">
+                    <i class="fas fa-history"></i>
+                </div>
+                <div class="menu-item-content">
+                    <div class="menu-item-title">Ver Historial</div>
+                    <div class="menu-item-description">Generaciones anteriores</div>
+                </div>
+                <span class="menu-item-badge" id="menuHistoryBadge">0</span>
+            </button>
+
+            <div class="menu-divider"></div>
+
+            <!-- Documentación -->
+            <button class="menu-item" onclick="window.open('https://github.com/qualityai', '_blank'); closeUserMenu();">
+                <div class="menu-item-icon" style="background: #ede9fe; color: #7c3aed;">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="menu-item-content">
+                    <div class="menu-item-title">Documentación</div>
+                    <div class="menu-item-description">Guías y tutoriales</div>
+                </div>
+                <i class="fas fa-external-link-alt" style="color: #d1d5db; font-size: 12px;"></i>
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="dropdown-footer">
+            <div class="kb-count">
+                <i class="fas fa-database"></i>
+                <span>Base de conocimiento: <strong id="dropdownKbCount">0</strong> historias</span>
+            </div>
+        </div>
+    </div>
+</div>

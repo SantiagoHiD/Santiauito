@@ -1,0 +1,131 @@
+{
+  "pipeline_run_id": "b-login-ejemplo-001",
+  "agent_name": "test_architect",
+  "agent_version": "0.2.1",
+  "created_at": "2026-05-14T10:00:00",
+  "features": [
+    {
+      "name": "Autenticacion de usuarios con email y contrasena",
+      "description": "Como usuario registrado, quiero iniciar sesion con mis credenciales, para acceder a las funcionalidades del sistema",
+      "tags": ["@auth", "@critical"],
+      "background": null,
+      "user_story_id": "US-001",
+      "scenarios": [
+        {
+          "name": "Login exitoso con credenciales validas",
+          "scenario_type": "positive",
+          "quality_characteristic": "functional_suitability",
+          "tags": ["@smoke", "@happy-path"],
+          "steps": [
+            {"keyword": "Given", "text": "un usuario registrado y activo con email valido", "data_table": null, "doc_string": null},
+            {"keyword": "When", "text": "ingresa su email y su contrasena correctos", "data_table": null, "doc_string": null},
+            {"keyword": "Then", "text": "el sistema autentica al usuario y le da acceso", "data_table": null, "doc_string": null}
+          ],
+          "is_outline": false,
+          "examples": null,
+          "acceptance_criterion_id": "SCN-001",
+          "user_story_id": "US-001"
+        },
+        {
+          "name": "Login rechaza intento de inyeccion SQL",
+          "scenario_type": "negative",
+          "quality_characteristic": "security",
+          "tags": ["@security", "@negative"],
+          "steps": [
+            {"keyword": "Given", "text": "un atacante en la pantalla de login", "data_table": null, "doc_string": null},
+            {"keyword": "When", "text": "ingresa una cadena de inyeccion SQL como credencial", "data_table": null, "doc_string": null},
+            {"keyword": "Then", "text": "el sistema rechaza el intento y registra el evento", "data_table": null, "doc_string": null}
+          ],
+          "is_outline": false,
+          "examples": null,
+          "acceptance_criterion_id": "SCN-002",
+          "user_story_id": "US-001"
+        },
+        {
+          "name": "Login rechaza credenciales con contrasena incorrecta",
+          "scenario_type": "negative",
+          "quality_characteristic": "functional_suitability",
+          "tags": ["@negative"],
+          "steps": [
+            {"keyword": "Given", "text": "un usuario registrado y activo", "data_table": null, "doc_string": null},
+            {"keyword": "When", "text": "ingresa su email correcto pero una contrasena incorrecta", "data_table": null, "doc_string": null},
+            {"keyword": "Then", "text": "el sistema rechaza el acceso y muestra un mensaje de error", "data_table": null, "doc_string": null}
+          ],
+          "is_outline": false,
+          "examples": null,
+          "acceptance_criterion_id": "SCN-003",
+          "user_story_id": "US-001"
+        },
+        {
+          "name": "Bloqueo de cuenta tras cinco intentos fallidos",
+          "scenario_type": "boundary",
+          "quality_characteristic": "security",
+          "tags": ["@security", "@boundary"],
+          "steps": [
+            {"keyword": "Given", "text": "un usuario que ha fallado cuatro intentos de login seguidos", "data_table": null, "doc_string": null},
+            {"keyword": "When", "text": "falla un quinto intento de login consecutivo", "data_table": null, "doc_string": null},
+            {"keyword": "Then", "text": "el sistema bloquea la cuenta de forma temporal", "data_table": null, "doc_string": null}
+          ],
+          "is_outline": false,
+          "examples": null,
+          "acceptance_criterion_id": "SCN-004",
+          "user_story_id": "US-001"
+        }
+      ]
+    }
+  ],
+  "coverage_matrix": [
+    {
+      "user_story_id": "US-001",
+      "criterion_id": "SCN-001",
+      "scenario_names": ["Login exitoso con credenciales validas"],
+      "coverage_type": ["positive"],
+      "quality_characteristics_covered": ["functional_suitability"]
+    },
+    {
+      "user_story_id": "US-001",
+      "criterion_id": "SCN-002",
+      "scenario_names": ["Login rechaza intento de inyeccion SQL"],
+      "coverage_type": ["negative"],
+      "quality_characteristics_covered": ["security"]
+    },
+    {
+      "user_story_id": "US-001",
+      "criterion_id": "SCN-003",
+      "scenario_names": ["Login rechaza credenciales con contrasena incorrecta"],
+      "coverage_type": ["negative"],
+      "quality_characteristics_covered": ["functional_suitability"]
+    },
+    {
+      "user_story_id": "US-001",
+      "criterion_id": "SCN-004",
+      "scenario_names": ["Bloqueo de cuenta tras cinco intentos fallidos"],
+      "coverage_type": ["boundary"],
+      "quality_characteristics_covered": ["security"]
+    }
+  ],
+  "review": {
+    "review_status": "approved",
+    "version": 1,
+    "approved_by": "analista.qa",
+    "approved_at": "2026-05-14T11:00:00",
+    "analyst_feedback": "Suite aprobado para el Modulo 3. Cobertura funcional y de seguridad adecuada para el login.",
+    "change_history": [
+      {
+        "timestamp": "2026-05-14T11:00:00",
+        "reviewer": "analista.qa",
+        "action": "approved",
+        "notes": "Los 4 escenarios cubren los criterios de aceptacion del login."
+      }
+    ]
+  },
+  "total_scenarios": 4,
+  "total_positive": 1,
+  "total_negative": 2,
+  "total_boundary": 1,
+  "uncovered_criteria": [],
+  "coverage_by_characteristic": {
+    "functional_suitability": 2,
+    "security": 2
+  }
+}
