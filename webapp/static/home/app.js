@@ -144,7 +144,6 @@ function renderHistoryInPage(stories) {
         
         if (story.has_scenarios && story.scenarios) {
             if (story.scenarios.is_signed) {
-                // Firmado y aprobado
                 statusBadge = `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-300">
                     <i class="fas fa-check-circle mr-1"></i>Firmado y Aprobado
                 </span>`;
@@ -152,6 +151,17 @@ function renderHistoryInPage(stories) {
                 downloadButton = `<button onclick="downloadReportFromHistory('${story.scenarios.filename}')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all" title="Descargar reporte final firmado">
                     <i class="fas fa-download mr-2"></i>Descargar Reporte Final
                 </button>`;
+                
+                // Boton M3: continuar o ver codigo segun estado
+                if (story.has_code) {
+                    viewButton = `<button onclick="viewContractC('${story.code.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Ver codigo generado">
+                        <i class="fas fa-code mr-2"></i>Ver Codigo Generado
+                    </button>`;
+                } else {
+                    viewButton = `<button onclick="continueWithCode('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Continuar a generar codigo (Modulo 3)">
+                        <i class="fas fa-forward mr-2"></i>Continuar a Generar Codigo
+                    </button>`;
+                }
             } else {
                 // Con escenarios pero sin firmar
                 statusBadge = `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-300">
@@ -3570,12 +3580,6 @@ function startCodeReview() {
         return;
     }
 
-    codeReviewCommenterName = prompt('Ingresa tu nombre como Desarrollador Senior:', '');
-    if (!codeReviewCommenterName || !codeReviewCommenterName.trim()) {
-        return;
-    }
-    codeReviewCommenterName = codeReviewCommenterName.trim();
-
     codeReviewModules = currentContractC.generated_code.map((m, idx) => ({
         index: idx,
         filename: m.filename,
@@ -3599,12 +3603,6 @@ function showCodeReviewModule(index) {
         document.getElementById('codeReviewContent').classList.add('hidden');
         const actionsBar = document.getElementById('codeReviewActions');
         if (actionsBar) actionsBar.classList.add('hidden');
-        const nameInput = document.getElementById('codeReviewerName');
-        if (nameInput) {
-            nameInput.value = codeReviewCommenterName || '';
-            nameInput.readOnly = true;
-            nameInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-        }
         document.getElementById('codeReviewFinalSection').classList.remove('hidden');
         return;
     }
@@ -3647,10 +3645,11 @@ function showCodeReviewModule(index) {
 
 function acceptCodeModule() {
     const mod = codeReviewModules[currentCodeReviewIndex];
+    const reviewer = document.getElementById('codeReviewerName').value.trim() || 'Revisor';
     codeReviewChanges.push({
         filename: mod.filename,
         action: 'accepted',
-        reviewer: codeReviewCommenterName,
+        reviewer: reviewer,
         notes: 'Módulo aceptado por el revisor'
     });
     showCodeReviewModule(currentCodeReviewIndex + 1);
@@ -3663,17 +3662,18 @@ function commentCodeModule() {
         return;
     }
     const mod = codeReviewModules[currentCodeReviewIndex];
+    const reviewer = document.getElementById('codeReviewerName').value.trim() || 'Revisor';
     codeReviewChanges.push({
         filename: mod.filename,
         action: 'smell_flagged',
-        reviewer: codeReviewCommenterName,
+        reviewer: reviewer,
         notes: notes
     });
     const commentsList = document.getElementById('codeReviewCommentsList');
     if (commentsList) {
         const entry = document.createElement('div');
         entry.className = 'text-xs bg-orange-50 border border-orange-200 rounded px-2 py-1 text-orange-800';
-        entry.textContent = `${codeReviewCommenterName} → ${mod.filename}: ${notes}`;
+        entry.textContent = `${reviewer} → ${mod.filename}: ${notes}`;
         commentsList.appendChild(entry);
     }
     document.getElementById('codeReviewNotes').value = '';
@@ -3682,10 +3682,11 @@ function commentCodeModule() {
 
 function skipCodeModule() {
     const mod = codeReviewModules[currentCodeReviewIndex];
+    const reviewer = document.getElementById('codeReviewerName').value.trim() || 'Revisor';
     codeReviewChanges.push({
         filename: mod.filename,
         action: 'skipped',
-        reviewer: codeReviewCommenterName,
+        reviewer: reviewer,
         notes: ''
     });
     showCodeReviewModule(currentCodeReviewIndex + 1);

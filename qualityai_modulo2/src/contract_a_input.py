@@ -1,7 +1,7 @@
 """Contract A — entrada del Módulo 2 (re-export desde Módulo 1).
 
 Este archivo es el ÚNICO punto de acoplamiento del Módulo 2 con el Módulo 1.
-Re-exporta las clases del Contract A definido en modulo1_requirements_refiner.
+Re-exporta las clases del Contract A definido en qualityai_modulo1.
 
 Decisión arquitectónica (ADR-M2-001):
 - El Contract A se define UNA SOLA VEZ en el Módulo 1.
@@ -37,7 +37,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 # Re-exportar el Contract A del Módulo 1
-from modulo1_requirements_refiner.src.contract_a import (  # noqa: E402
+from qualityai_modulo1.src.contract_a import (  # noqa: E402
     AcceptanceCriterion,
     AmbiguityResolution,
     Priority,

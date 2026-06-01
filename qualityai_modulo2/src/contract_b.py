@@ -20,7 +20,7 @@ Versión 0.2.0:
 Versión 0.2.1:
 - Mueve la serialización a texto .feature al paquete serializers/.
   Este archivo ahora contiene SOLO el schema (separación de concerns).
-  Ver: modulo2_test_architect.serializers.gherkin_writer
+  Ver: qualityai_modulo2.serializers.gherkin_writer
 """
 
 from __future__ import annotations
@@ -250,7 +250,7 @@ class GherkinFeature(BaseModel):
     )
 
     # NOTA: la serialización a texto .feature se realiza vía
-    # modulo2_test_architect.serializers.gherkin_writer.feature_to_gherkin_text(feature).
+    # qualityai_modulo2.serializers.gherkin_writer.feature_to_gherkin_text(feature).
     # Mantenemos el schema (este archivo) limpio de lógica de serialización
     # para respetar la separación de concerns.
 

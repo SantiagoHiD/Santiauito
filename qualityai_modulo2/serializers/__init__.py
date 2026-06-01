@@ -13,7 +13,7 @@ Beneficios:
 - Los tests de schema y los tests de serialización son independientes.
 """
 
-from modulo2_test_architect.serializers.gherkin_writer import (
+from qualityai_modulo2.serializers.gherkin_writer import (
     feature_to_gherkin_text,
     suite_to_gherkin_files,
 )

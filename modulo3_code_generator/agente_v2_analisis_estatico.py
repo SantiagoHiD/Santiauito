@@ -53,7 +53,7 @@ from modulo3_code_generator.agente_v1_base import (
     inicializar_kb,
     parsear_respuesta,
 )
-from modulo2_test_architect.src.contract_b import GherkinTestSuite
+from qualityai_modulo2.src.contract_b import GherkinTestSuite
 from modulo3_code_generator.src.contract_c import (
     CodeGenerationResult,
     ComplexityBand,

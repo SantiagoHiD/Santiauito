@@ -1,28 +1,36 @@
-"""Agente 1: Requirements Refiner - Implementación principal.
+"""Agente 1 con RAG: Requirements Refiner potenciado con Base de Conocimiento.
 
-Recibe texto libre de requerimientos y produce historias de usuario
-estructuradas con criterios de aceptación verificables.
+Este agente es la versión avanzada del Requirements Refiner. Antes de llamar
+al LLM, busca historias de usuario similares en la base de conocimiento
+del SGC de Katary y las usa como contexto (RAG - Retrieval-Augmented Generation).
 
-Entrada: str (texto libre de requerimientos)
+Diferencia vs agente básico:
+- Básico: prompt fijo → LLM → historias genéricas
+- RAG: búsqueda en KB → prompt enriquecido → LLM → historias informadas por experiencia Katary
+
+Entrada: RequirementsInput (texto libre de requerimientos)
 Salida: RefinedRequirements (Contract A)
 """
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
 
 from shared.base_agent import BaseAgent, AgentError
 from shared.settings import Settings
-from modulo1_requirements_refiner.src.contract_a import (
+from qualityai_modulo1.src.contract_a import (
     AcceptanceCriterion,
     AmbiguityResolution,
     RefinedRequirements,
     UserStory,
 )
-from modulo1_requirements_refiner.src.prompts import SYSTEM_PROMPT, USER_MESSAGE_TEMPLATE
+from qualityai_modulo1.src.knowledge_base import KnowledgeBase
+from qualityai_modulo1.src.prompts_rag import (
+    build_system_prompt_with_rag,
+    USER_MESSAGE_TEMPLATE,
+)
 
 
 class RequirementsInput(BaseModel):
@@ -37,18 +45,45 @@ class RequirementsInput(BaseModel):
     additional_context: Optional[str] = Field(default=None)
 
 
-class RequirementsRefinerAgent(BaseAgent[RequirementsInput, RefinedRequirements]):
-    """Agente 1: Transforma requerimientos ambiguos en historias de usuario estructuradas."""
+class RequirementsRefinerRAGAgent(BaseAgent[RequirementsInput, RefinedRequirements]):
+    """Agente 1 con RAG: Refina requerimientos usando base de conocimiento institucional.
 
-    name = "requirements_refiner"
-    version = "0.1.0"
-    description = "Transforma requerimientos en texto libre → Historias de usuario con criterios de aceptación verificables"
+    Flujo:
+    1. Recibe requerimiento en texto libre
+    2. Busca historias similares en la base de conocimiento (embeddings + ChromaDB)
+    3. Construye prompt enriquecido con las historias encontradas como referencia
+    4. Llama al LLM (Ollama/Gemma o cloud) con el contexto institucional
+    5. Valida la salida contra Contract A (Pydantic)
+    6. Retorna historias de usuario con calidad CMMI-DEV L3
+    """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    name = "requirements_refiner_rag"
+    version = "0.2.0"
+    description = (
+        "Transforma requerimientos en texto libre → Historias de usuario "
+        "con criterios de aceptación verificables, potenciado por base "
+        "de conocimiento institucional (RAG)"
+    )
+
+    def __init__(
+        self,
+        settings: Optional[Settings] = None,
+        knowledge_base: Optional[KnowledgeBase] = None,
+        kb_top_k: int = 3,
+    ):
+        """
+        Args:
+            settings: configuración del LLM
+            knowledge_base: base de conocimiento pre-inicializada (o None para crear una nueva)
+            kb_top_k: cantidad de historias similares a incluir como contexto
+        """
         super().__init__(settings)
+        self.kb = knowledge_base
+        self.kb_top_k = kb_top_k
 
     def _build_system_prompt(self) -> str:
-        return SYSTEM_PROMPT
+        """Construye el system prompt base (sin RAG)."""
+        return build_system_prompt_with_rag("")
 
     def _build_user_message(self, input_data: RequirementsInput) -> str:
         text = input_data.requirements_text
@@ -57,19 +92,31 @@ class RequirementsRefinerAgent(BaseAgent[RequirementsInput, RefinedRequirements]
         return USER_MESSAGE_TEMPLATE.format(requirements_text=text)
 
     def process(self, input_data: RequirementsInput) -> RefinedRequirements:
-        """Procesa los requerimientos y genera historias de usuario refinadas."""
+        """Procesa los requerimientos con RAG."""
 
-        # 1. Llamar al LLM
-        system_prompt = self._build_system_prompt()
+        # 1. Buscar contexto en la base de conocimiento
+        kb_context = ""
+        if self.kb:
+            kb_context = self.kb.build_context_for_prompt(
+                input_data.requirements_text,
+                top_k=self.kb_top_k,
+            )
+            from rich.console import Console
+            console = Console()
+            console.print(f"  [dim]RAG: {self.kb_top_k} historias similares encontradas en KB[/dim]")
+
+        # 2. Construir prompt enriquecido con contexto de la KB
+        system_prompt = build_system_prompt_with_rag(kb_context)
         user_message = self._build_user_message(input_data)
+
+        # 3. Llamar al LLM
         raw_output = self.call_llm_json(system_prompt, user_message)
 
-        # 2. Construir el modelo de salida
+        # 4. Construir modelo de salida (mismo parsing que agente básico)
         user_stories = []
         ac_counter = 0
 
         for story_data in raw_output.get("user_stories", []):
-            # Construir criterios de aceptación
             criteria = []
             for ac_data in story_data.get("acceptance_criteria", []):
                 ac_counter += 1
@@ -86,7 +133,6 @@ class RequirementsRefinerAgent(BaseAgent[RequirementsInput, RefinedRequirements]
                     )
                 )
 
-            # Construir ambigüedades resueltas
             ambiguities = []
             for amb_data in story_data.get("ambiguities_resolved", []):
                 ambiguities.append(
@@ -119,20 +165,17 @@ class RequirementsRefinerAgent(BaseAgent[RequirementsInput, RefinedRequirements]
         if not user_stories:
             raise AgentError(
                 self.name,
-                "LLM no generó ninguna historia de usuario. Revisa el requerimiento de entrada.",
+                "LLM no generó ninguna historia de usuario.",
             )
 
-        # 3. Calcular métricas
-        total_ambiguities = sum(
-            len(story.ambiguities_resolved) for story in user_stories
-        )
+        total_ambiguities = sum(len(s.ambiguities_resolved) for s in user_stories)
         total_assumptions = sum(
-            sum(1 for a in story.ambiguities_resolved if a.assumption_made)
-            for story in user_stories
+            sum(1 for a in s.ambiguities_resolved if a.assumption_made)
+            for s in user_stories
         )
 
         return RefinedRequirements(
-            pipeline_run_id="",  # Se asigna en el orquestador
+            pipeline_run_id="",
             original_requirements_text=input_data.requirements_text,
             project_context=raw_output.get("project_context", ""),
             user_stories=user_stories,

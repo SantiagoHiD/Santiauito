@@ -77,14 +77,14 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 # Contract A re-exportado desde el Modulo 1 (entrada del agente)
-from modulo2_test_architect.src.contract_a_input import (
+from qualityai_modulo2.src.contract_a_input import (
     AcceptanceCriterion,
     RefinedRequirements,
     UserStory,
 )
 
 # Contract B (salida del agente)
-from modulo2_test_architect.src.contract_b import (
+from qualityai_modulo2.src.contract_b import (
     CoverageMatrix,
     GherkinFeature,
     GherkinScenario,
@@ -700,7 +700,7 @@ if __name__ == "__main__":
     if not contract_a_path:
         contract_a_path = str(
             _PROJECT_ROOT
-            / "modulo1_requirements_refiner"
+            / "qualityai_modulo1"
             / "examples"
             / "output"
             / "contract_a_login_ejemplo.json"

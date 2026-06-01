@@ -6,5 +6,13 @@
     "color": "amber",
     "created_at": "2026-06-01T10:41:59.395077",
     "updated_at": "2026-06-01T10:41:59.395084"
+  },
+  {
+    "id": "3aa7d10e-2c6e-4460-9450-13d467154ce6",
+    "name": "Votaciones",
+    "description": "Sistema de votaciones",
+    "color": "rose",
+    "created_at": "2026-06-01T11:51:54.872303",
+    "updated_at": "2026-06-01T11:51:54.872314"
   }
 ]

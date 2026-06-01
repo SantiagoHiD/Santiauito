@@ -23,7 +23,7 @@ from groq import Groq as _RealGroq
 # ============================================================
 # MOCK GLOBAL para pruebas sin tokens
 # ============================================================
-MOCK_GROQ = False  # ← Cambiar a True para usar mock
+MOCK_GROQ = os.getenv("MOCK_GROQ", "false").lower() in ("true", "1", "yes")
 
 if MOCK_GROQ:
     class MockGroqChoice:
@@ -65,56 +65,254 @@ if MOCK_GROQ:
                 'success': True,
                 'result': {
                     'pipeline_run_id': 'mock-refine',
+                    'agent_name': 'requirements_refiner',
                     'agent_version': 'v4',
+                    'created_at': datetime.now().isoformat(),
                     'original_requirements_text': '',
                     'project_context': 'resumen del proyecto mock',
                     'user_stories': [{
+
                         'id': 'US-001', 'title': 'Registro de Usuario',
                         'story_type': 'functional', 'priority': 'high',
                         'as_a': 'usuario', 'i_want': 'registrarme', 'so_that': 'acceder al sistema',
                         'acceptance_criteria': [{
-                            'id': 'AC-001', 'description': 'Validar email',
+                            'id': 'AC-001', 'description': 'Validar email del usuario durante el registro',
                             'given': 'El usuario ingresa un email',
                             'when': 'el email es valido',
                             'then': 'se acepta',
                             'is_negative_case': False,
                             'test_data_examples': ['test@test.com'],
                             'boundary_values': []
+                        }, {
+                            'id': 'AC-002', 'description': 'Validar contrasena segura con requisitos minimos',
+                            'given': 'El usuario ingresa una contrasena',
+                            'when': 'la contrasena cumple los requisitos de seguridad',
+                            'then': 'se acepta como valida',
+                            'is_negative_case': False,
+                            'test_data_examples': ['Pass1234'],
+                            'boundary_values': ['8 caracteres', '64 caracteres']
                         }],
                         'business_rules': [], 'dependencies': [],
                         'ui_elements': [], 'api_endpoints': [],
                         'ambiguities_resolved': []
+                    }, {
+                        'id': 'US-002', 'title': 'Inicio de Sesion de Usuario',
+                        'story_type': 'functional', 'priority': 'high',
+                        'as_a': 'usuario registrado', 'i_want': 'iniciar sesion', 'so_that': 'acceder al sistema',
+                        'acceptance_criteria': [{
+                            'id': 'AC-003', 'description': 'Validar credenciales correctas para acceso',
+                            'given': 'un usuario registrado con credenciales validas',
+                            'when': 'ingresa usuario y contrasena correctos',
+                            'then': 'accede al sistema exitosamente',
+                            'is_negative_case': False,
+                            'test_data_examples': [{'usuario': 'test@test.com', 'contrasena': 'Pass1234', 'expected': 'acceso concedido'}],
+                            'boundary_values': []
+                        }, {
+                            'id': 'AC-004', 'description': 'Bloquear cuenta tras intentos fallidos de login',
+                            'given': 'un usuario registrado',
+                            'when': 'ingresa contrasena incorrecta 3 veces consecutivas',
+                            'then': 'la cuenta se bloquea temporalmente por 30 minutos',
+                            'is_negative_case': True,
+                            'test_data_examples': [{'usuario': 'test@test.com', 'contrasena': 'wrong', 'intentos': 3, 'expected': 'cuenta bloqueada'}],
+                            'boundary_values': ['2 intentos', '3 intentos', '4 intentos']
+                        }],
+                        'business_rules': [], 'dependencies': ['US-001'],
+                        'ui_elements': [], 'api_endpoints': [],
+                        'ambiguities_resolved': []
                     }],
-                    'total_ambiguities_found': 0,
-                    'total_assumptions_made': 0
+                    'total_ambiguities_found': 2,
+                    'total_assumptions_made': 1
                 },
-                'output_file': 'mock_output.json',
+                'output_file': 'mock_output_refine.json',
                 'tokens_used': 0,
-                'timestamp': 'mock_timestamp'
+                'timestamp': datetime.now().strftime('%Y%m%d_%H%M%S')
             })
         elif ruta == 'scenarios':
-            return jsonify({'success': True, 'contract_b': {'pipeline_run_id': 'mock', 'features': [
-                {'name': 'Registro de Usuario', 'description': 'Creación de cuenta y validación de datos', 'scenarios': [
-                    {'name': 'Email válido', 'type': 'positive', 'steps': [{'keyword': 'Given', 'text': 'un usuario ingresa un email válido'}, {'keyword': 'When', 'text': 'el sistema valida el formato'}, {'keyword': 'Then', 'text': 'el email es aceptado'}], 'tags': ['smoke', 'regression']},
-                    {'name': 'Email inválido', 'type': 'negative', 'steps': [{'keyword': 'Given', 'text': 'un usuario ingresa un email sin arroba'}, {'keyword': 'When', 'text': 'el sistema valida el formato'}, {'keyword': 'Then', 'text': 'muestra error "Email inválido"'}], 'tags': ['regression']},
-                    {'name': 'Contraseña segura', 'type': 'positive', 'steps': [{'keyword': 'Given', 'text': 'un usuario ingresa una contraseña de 12 caracteres con mayúsculas, números y símbolos'}, {'keyword': 'When', 'text': 'el sistema evalúa la fortaleza'}, {'keyword': 'Then', 'text': 'la contraseña es aceptada como segura'}], 'tags': ['security']},
-                    {'name': 'Nombre vacío', 'type': 'negative', 'steps': [{'keyword': 'Given', 'text': 'un usuario deja el campo nombre vacío'}, {'keyword': 'When', 'text': 'intenta registrarse'}, {'keyword': 'Then', 'text': 'muestra error "Nombre requerido"'}], 'tags': ['validation']},
-                ]},
-                {'name': 'Inicio de Sesión', 'description': 'Autenticación de usuarios registrados', 'scenarios': [
-                    {'name': 'Login exitoso', 'type': 'positive', 'steps': [{'keyword': 'Given', 'text': 'un usuario registrado con credenciales válidas'}, {'keyword': 'When', 'text': 'ingresa usuario y contraseña correctos'}, {'keyword': 'Then', 'text': 'accede al sistema'}], 'tags': ['smoke']},
-                    {'name': 'Login con contraseña incorrecta', 'type': 'negative', 'steps': [{'keyword': 'Given', 'text': 'un usuario registrado'}, {'keyword': 'When', 'text': 'ingresa contraseña incorrecta 3 veces'}, {'keyword': 'Then', 'text': 'la cuenta se bloquea temporalmente'}], 'tags': ['security']},
-                    {'name': 'Recuperar contraseña', 'type': 'positive', 'steps': [{'keyword': 'Given', 'text': 'un usuario olvidó su contraseña'}, {'keyword': 'When', 'text': 'solicita recuperación por email'}, {'keyword': 'Then', 'text': 'recibe un enlace de restablecimiento válido por 24 horas'}], 'tags': ['regression']},
-                ]},
-                {'name': 'Gestión de Perfil', 'description': 'Actualización de datos personales', 'scenarios': [
-                    {'name': 'Actualizar avatar', 'type': 'positive', 'steps': [{'keyword': 'Given', 'text': 'un usuario autenticado en su perfil'}, {'keyword': 'When', 'text': 'sube una imagen de avatar menor a 2MB'}, {'keyword': 'Then', 'text': 'el avatar se actualiza y se muestra en el perfil'}], 'tags': ['smoke']},
-                    {'name': 'Avatar excede tamaño', 'type': 'negative', 'steps': [{'keyword': 'Given', 'text': 'un usuario autenticado en su perfil'}, {'keyword': 'When', 'text': 'sube una imagen de avatar mayor a 2MB'}, {'keyword': 'Then', 'text': 'muestra error "El archivo excede el tamaño máximo"'}], 'tags': ['validation']},
-                    {'name': 'Cambiar email', 'type': 'positive', 'steps': [{'keyword': 'Given', 'text': 'un usuario autenticado'}, {'keyword': 'When', 'text': 'cambia su email a uno válido no registrado'}, {'keyword': 'Then', 'text': 'el email se actualiza y recibe confirmación'}], 'tags': ['regression']},
-                ]},
-            ], 'total_scenarios': 10, 'total_steps': 30, 'coverage_percentage': 85}, 'filename': 'mock_contract_b.json'})
+            from datetime import datetime as dt_mock
+            now = dt_mock.now()
+            ts = now.strftime('%Y%m%d_%H%M%S')
+            contract_b = {
+                'pipeline_run_id': f'mock-m2-{ts}',
+                'agent_name': 'test_architect',
+                'agent_version': '0.3.0-v3-iso25010',
+                'created_at': now.isoformat(),
+                'features': [
+                    {
+                        'name': 'Registro de Usuario (US-001)',
+                        'description': 'Creacion de cuenta y validacion de datos personales',
+                        'tags': ['smoke', 'regression'],
+                        'scenarios': [
+                            {
+                                'name': 'Email valido',
+                                'scenario_type': 'positive',
+                                'quality_characteristic': 'functional_suitability',
+                                'heuristic_applied': 'EP',
+                                'tags': ['smoke'],
+                                'steps': [
+                                    {'keyword': 'Given', 'text': 'un usuario ingresa un email valido'},
+                                    {'keyword': 'When', 'text': 'el sistema valida el formato del email'},
+                                    {'keyword': 'Then', 'text': 'el email es aceptado correctamente'}
+                                ],
+                                'acceptance_criterion_id': 'AC-001',
+                                'user_story_id': 'US-001'
+                            },
+                            {
+                                'name': 'Email invalido',
+                                'scenario_type': 'negative',
+                                'quality_characteristic': 'functional_suitability',
+                                'heuristic_applied': 'BVA',
+                                'tags': ['regression'],
+                                'steps': [
+                                    {'keyword': 'Given', 'text': 'un usuario ingresa un email sin arroba'},
+                                    {'keyword': 'When', 'text': 'el sistema valida el formato del email'},
+                                    {'keyword': 'Then', 'text': 'muestra error Email invalido'}
+                                ],
+                                'acceptance_criterion_id': 'AC-001',
+                                'user_story_id': 'US-001'
+                            },
+                            {
+                                'name': 'Contrasena segura',
+                                'scenario_type': 'positive',
+                                'quality_characteristic': 'security',
+                                'heuristic_applied': 'EP',
+                                'tags': ['security'],
+                                'steps': [
+                                    {'keyword': 'Given', 'text': 'un usuario ingresa una contrasena de 12 caracteres'},
+                                    {'keyword': 'When', 'text': 'el sistema evalua la fortaleza de la contrasena'},
+                                    {'keyword': 'Then', 'text': 'la contrasena es aceptada como segura'}
+                                ],
+                                'acceptance_criterion_id': 'AC-002',
+                                'user_story_id': 'US-001'
+                            },
+                            {
+                                'name': 'Contrasena debil',
+                                'scenario_type': 'negative',
+                                'quality_characteristic': 'security',
+                                'heuristic_applied': 'BVA',
+                                'tags': ['security', 'validation'],
+                                'steps': [
+                                    {'keyword': 'Given', 'text': 'un usuario ingresa una contrasena de 4 caracteres'},
+                                    {'keyword': 'When', 'text': 'el sistema evalua la fortaleza de la contrasena'},
+                                    {'keyword': 'Then', 'text': 'muestra error Contrasena debil'}
+                                ],
+                                'acceptance_criterion_id': 'AC-002',
+                                'user_story_id': 'US-001'
+                            }
+                        ],
+                        'user_story_id': 'US-001'
+                    },
+                    {
+                        'name': 'Inicio de Sesion (US-002)',
+                        'description': 'Autenticacion de usuarios registrados en el sistema',
+                        'tags': ['smoke', 'security'],
+                        'scenarios': [
+                            {
+                                'name': 'Login exitoso',
+                                'scenario_type': 'positive',
+                                'quality_characteristic': 'functional_suitability',
+                                'heuristic_applied': 'general',
+                                'tags': ['smoke'],
+                                'steps': [
+                                    {'keyword': 'Given', 'text': 'un usuario registrado con credenciales validas'},
+                                    {'keyword': 'When', 'text': 'ingresa usuario y contrasena correctos'},
+                                    {'keyword': 'Then', 'text': 'accede al sistema exitosamente'}
+                                ],
+                                'acceptance_criterion_id': 'AC-003',
+                                'user_story_id': 'US-002'
+                            },
+                            {
+                                'name': 'Login bloqueo',
+                                'scenario_type': 'negative',
+                                'quality_characteristic': 'security',
+                                'heuristic_applied': 'BVA',
+                                'tags': ['security'],
+                                'steps': [
+                                    {'keyword': 'Given', 'text': 'un usuario registrado con credenciales validas'},
+                                    {'keyword': 'When', 'text': 'ingresa contrasena incorrecta 3 veces seguidas'},
+                                    {'keyword': 'Then', 'text': 'la cuenta se bloquea temporalmente por 30 minutos'}
+                                ],
+                                'acceptance_criterion_id': 'AC-004',
+                                'user_story_id': 'US-002'
+                            },
+                            {
+                                'name': 'Recuperar contrasena',
+                                'scenario_type': 'positive',
+                                'quality_characteristic': 'usability',
+                                'heuristic_applied': 'general',
+                                'tags': ['regression'],
+                                'steps': [
+                                    {'keyword': 'Given', 'text': 'un usuario olvido su contrasena'},
+                                    {'keyword': 'When', 'text': 'solicita recuperacion por email registrado'},
+                                    {'keyword': 'Then', 'text': 'recibe un enlace de restablecimiento valido por 24 horas'}
+                                ],
+                                'acceptance_criterion_id': 'AC-003',
+                                'user_story_id': 'US-002'
+                            }
+                        ],
+                        'user_story_id': 'US-002'
+                    }
+                ],
+                'coverage_matrix': [
+                    {
+                        'user_story_id': 'US-001',
+                        'criterion_id': 'AC-001',
+                        'scenario_names': ['Email valido', 'Email invalido'],
+                        'coverage_type': ['positive', 'negative'],
+                        'quality_characteristics_covered': ['functional_suitability']
+                    },
+                    {
+                        'user_story_id': 'US-001',
+                        'criterion_id': 'AC-002',
+                        'scenario_names': ['Contrasena segura', 'Contrasena debil'],
+                        'coverage_type': ['positive', 'negative'],
+                        'quality_characteristics_covered': ['security']
+                    },
+                    {
+                        'user_story_id': 'US-002',
+                        'criterion_id': 'AC-003',
+                        'scenario_names': ['Login exitoso', 'Recuperar contrasena'],
+                        'coverage_type': ['positive', 'positive'],
+                        'quality_characteristics_covered': ['functional_suitability', 'usability']
+                    },
+                    {
+                        'user_story_id': 'US-002',
+                        'criterion_id': 'AC-004',
+                        'scenario_names': ['Login bloqueo'],
+                        'coverage_type': ['negative'],
+                        'quality_characteristics_covered': ['security']
+                    }
+                ],
+                'total_scenarios': 7,
+                'total_positive': 4,
+                'total_negative': 3,
+                'total_boundary': 0,
+                'coverage_by_characteristic': {
+                    'functional_suitability': 3,
+                    'security': 3,
+                    'usability': 1
+                }
+            }
+            # Persistir Contract B mockeado para que update_contract_b funcione
+            output_dir_m2 = MODULO2_DIR / "output"
+            output_dir_m2.mkdir(exist_ok=True, parents=True)
+            mock_filename_m2 = f"contract_b_mock_{ts}.json"
+            mock_file_m2 = output_dir_m2 / mock_filename_m2
+            mock_file_m2.write_text(json.dumps(contract_b, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+            return jsonify({
+                'success': True,
+                'contract_b': contract_b,
+                'output_file': str(mock_file_m2),
+                'filename': mock_filename_m2,
+                'version': 'v3'
+            })
         elif ruta == 'code':
             import tempfile
             mock_contract_c = {
                 'pipeline_run_id': 'mock-code',
+                'agent_name': 'code_generator',
+                'agent_version': '0.3.0-v3-trazabilidad',
+                'created_at': datetime.now().isoformat(),
+                'source_contract_b_id': 'mock-contract-b-webapp',
                 'generated_code': [
                     {'filename': 'usuario.py', 'user_story_id': 'US-001', 'description': 'Modelo de Usuario con validaciones', 'source_code': 'import re\nfrom typing import Optional\n\nclass Usuario:\n    def __init__(self, nombre: str, email: str, password: str):\n        self.nombre = nombre\n        self.email = email\n        self.password = password\n\n    def validar_nombre(self) -> bool:\n        return bool(self.nombre and 1 <= len(self.nombre) <= 50)\n\n    def validar_email(self) -> bool:\n        patron = r\'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$\'\n        return bool(re.match(patron, self.email))\n\n    def validar_password_fortaleza(self) -> dict:\n        result = {"valida": False, "nivel": "debil", "errores": []}\n        if len(self.password) < 8:\n            result["errores"].append("Debe tener al menos 8 caracteres")\n        if not re.search(r\'[A-Z]\', self.password):\n            result["errores"].append("Debe contener mayuscula")\n        if not re.search(r\'[0-9]\', self.password):\n            result["errores"].append("Debe contener numero")\n        if not result["errores"]:\n            result["valida"] = True\n            result["nivel"] = "fuerte"\n        return result\n'},
                     {'filename': 'auth_service.py', 'user_story_id': 'US-002', 'description': 'Servicio de autenticación y login', 'source_code': 'from usuario import Usuario\nfrom typing import Optional\n\nclass AuthService:\n    def __init__(self):\n        self._usuarios: dict[str, Usuario] = {}\n        self._intentos_fallidos: dict[str, int] = {}\n\n    def registrar(self, usuario: Usuario) -> dict:\n        if usuario.email in self._usuarios:\n            return {"exito": False, "error": "Email ya registrado"}\n        self._usuarios[usuario.email] = usuario\n        return {"exito": True, "mensaje": "Usuario registrado"}\n\n    def login(self, email: str, password: str) -> dict:\n        if self._intentos_fallidos.get(email, 0) >= 3:\n            return {"exito": False, "error": "Cuenta bloqueada temporalmente"}\n        usuario = self._usuarios.get(email)\n        if not usuario or usuario.password != password:\n            self._intentos_fallidos[email] = self._intentos_fallidos.get(email, 0) + 1\n            return {"exito": False, "error": "Credenciales invalidas"}\n        self._intentos_fallidos[email] = 0\n        return {"exito": True, "mensaje": "Login exitoso", "usuario": usuario}\n\n    def recuperar_password(self, email: str) -> dict:\n        if email not in self._usuarios:\n            return {"exito": False, "error": "Email no registrado"}\n        return {"exito": True, "mensaje": "Enlace de recuperacion enviado", "token_valido_horas": 24}\n'},
@@ -175,15 +373,15 @@ if MOCK_GROQ:
             mock_filename = f"contract_c_mock_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             mock_file = output_dir / mock_filename
             mock_file.write_text(json.dumps(mock_contract_c, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-            return jsonify({'success': True, 'contract_c': mock_contract_c, 'filename': mock_filename, 'output_file': str(mock_file)})
+            return jsonify({'success': True, 'contract_c': mock_contract_c, 'filename': mock_filename, 'output_file': str(mock_file), 'pipeline_run_id': mock_contract_c['pipeline_run_id']})
         return jsonify({'error': 'ruta desconocida'}), 400
 else:
     from groq import Groq
 
 # Setup paths
 import sys
-MODULO1_DIR = Path(__file__).resolve().parents[1] / "qualityai-modulo1"
-MODULO2_DIR = Path(__file__).resolve().parents[1] / "qualityai-modulo2"
+MODULO1_DIR = Path(__file__).resolve().parents[1] / "qualityai_modulo1"
+MODULO2_DIR = Path(__file__).resolve().parents[1] / "qualityai_modulo2"
 MODULO3_DIR = Path(__file__).resolve().parents[1] / "modulo3_code_generator"
 WEBAPP_DIR = Path(__file__).resolve().parent
 PROJECTS_DB_PATH = WEBAPP_DIR / "data" / "projects.json"
@@ -204,7 +402,7 @@ from src.contract_a import (
     StoryType,
 )
 
-load_dotenv(MODULO1_DIR / ".env")
+load_dotenv(WEBAPP_DIR / ".env")
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
@@ -263,7 +461,7 @@ from modulo3_code_generator.agente_v3_solucion import (
     medir_coverage,
     refinar_tests_v3,
 )
-from modulo2_test_architect.src.contract_b import (
+from qualityai_modulo2.src.contract_b import (
     GherkinTestSuite,
     GherkinFeature,
     GherkinScenario,
@@ -305,9 +503,9 @@ def init_models():
                 documents=textos,
                 metadatas=[{"dominio": s.get("dominio", "general"), "criterios": s.get("criterios", "")} for s in stories],
             )
-            print(f"✅ {collection.count()} historias indexadas")
+            print(f"[OK] {collection.count()} historias indexadas")
         else:
-            print(f"✅ Base de conocimiento: {collection.count()} historias")
+            print(f"[OK] Base de conocimiento: {collection.count()} historias")
 
 
 # ============================================================
@@ -980,7 +1178,7 @@ def generate_scenarios_m2():
             test_suite['project_id'] = contract_a_data['project_id']
         
         # Guardar resultado
-        output_dir = MODULO1_DIR.parent / "qualityai-modulo2" / "output"
+        output_dir = MODULO1_DIR.parent / "qualityai_modulo2" / "output"
         output_dir.mkdir(exist_ok=True, parents=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # Usar el timestamp del Contract A en el nombre si está disponible
@@ -1148,7 +1346,7 @@ def generar_escenarios_v3_completo(contract_a: RefinedRequirements, groq_client)
             start = text.find("{")
             end = text.rfind("}") + 1
             if start == -1 or end == 0:
-                print(f"❌ No se encontró JSON válido en la respuesta")
+                print(f"[ERROR] No se encontró JSON válido en la respuesta")
                 print(f"Texto procesado: {text[:200]}")
                 continue  # Saltar este AC si no hay JSON
             
@@ -1156,7 +1354,7 @@ def generar_escenarios_v3_completo(contract_a: RefinedRequirements, groq_client)
             try:
                 data = json.loads(json_str)
             except json.JSONDecodeError as e:
-                print(f"❌ Error al parsear JSON: {e}")
+                print(f"[ERROR] Error al parsear JSON: {e}")
                 print(f"JSON string: {json_str[:200]}")
                 continue  # Saltar este AC si el JSON es inválido
             
@@ -1382,6 +1580,40 @@ def get_history():
                         'is_signed': is_signed
                     }
         
+        # Construir lookup de M3 por timestamp para vincular con historias
+        m3_by_timestamp = {}
+        output_dir_m3 = MODULO3_DIR / "output"
+        if output_dir_m3.exists():
+            for file in sorted(output_dir_m3.glob("contract_c_v3_*.json"), reverse=True):
+                parts = file.stem.split('_')
+                if len(parts) >= 5:
+                    date_str = parts[3]
+                    time_str = parts[4]
+                    ts = f"{date_str}_{time_str}"
+                    try:
+                        if date_str and time_str:
+                            dt2 = datetime.strptime(ts, "%Y%m%d_%H%M%S")
+                            formatted = dt2.strftime("%d/%m/%Y %H:%M:%S")
+                        else:
+                            formatted = "Fecha desconocida"
+                    except:
+                        formatted = f"{date_str} {time_str}"
+                    review_status = "pending_review"
+                    try:
+                        with open(file, 'r', encoding='utf-8') as f:
+                            cc_data = json.load(f)
+                            review_status = cc_data.get('review', {}).get('review_status', 'pending_review')
+                    except:
+                        pass
+                    m3_by_timestamp[ts] = {
+                        'filename': file.name,
+                        'date': formatted,
+                        'timestamp': ts,
+                        'size': file.stat().st_size,
+                        'type': 'generated_code',
+                        'review_status': review_status,
+                    }
+
         # Ahora cargar historias y vincular con escenarios
         history_list = []
         output_dir_m1 = MODULO1_DIR / "output"
@@ -1438,6 +1670,8 @@ def get_history():
                         'type': 'user_stories',
                         'has_scenarios': has_scenarios,
                         'scenarios': scenarios_info,
+                        'has_code': timestamp_key in m3_by_timestamp,
+                        'code': m3_by_timestamp.get(timestamp_key),
                         'project_name': project_name
                     })
         
@@ -1572,8 +1806,8 @@ def delete_history_file(filename):
         output_dir_m1 = MODULO1_DIR / "output"
         file_path_m1 = output_dir_m1 / filename
         
-        print(f"🔍 Intentando eliminar: {file_path_m1}")
-        print(f"📁 Directorio existe: {output_dir_m1.exists()}")
+        print(f"[TRACE] Intentando eliminar: {file_path_m1}")
+        print(f"[TRACE] Directorio existe: {output_dir_m1.exists()}")
         print(f"📄 Archivo existe: {file_path_m1.exists()}")
         
         if not file_path_m1.exists():
@@ -1596,11 +1830,11 @@ def delete_history_file(filename):
             if output_dir_m2.exists():
                 for scenario_file in output_dir_m2.glob(f"contract_b_*_{timestamp_key}.json"):
                     scenario_file.unlink()
-                    print(f"✅ Escenarios eliminados: {scenario_file.name}")
+                    print(f"[OK] Escenarios eliminados: {scenario_file.name}")
         
         # Eliminar el archivo de historias
         file_path_m1.unlink()
-        print(f"✅ Historia eliminada: {filename}")
+        print(f"[OK] Historia eliminada: {filename}")
         
         return jsonify({
             'success': True,
@@ -1697,7 +1931,7 @@ def create_project():
         projects.append(new_project)
         save_projects_db(projects)
         
-        print(f"✅ Proyecto creado: {name} ({new_project['id']})")
+        print(f"[OK] Proyecto creado: {name} ({new_project['id']})")
         
         return jsonify({
             'success': True,
@@ -1748,7 +1982,7 @@ def update_project(project_id):
         
         save_projects_db(projects)
         
-        print(f"✅ Proyecto actualizado: {project['name']}")
+        print(f"[OK] Proyecto actualizado: {project['name']}")
         
         return jsonify({
             'success': True,
@@ -1774,7 +2008,7 @@ def delete_project(project_id):
         # TODO: Eliminar todos los Contract A y Contract B asociados
         # Por ahora solo eliminamos el proyecto de la base de datos
         
-        print(f"✅ Proyecto eliminado: {project['name']}")
+        print(f"[OK] Proyecto eliminado: {project['name']}")
         
         return jsonify({
             'success': True,

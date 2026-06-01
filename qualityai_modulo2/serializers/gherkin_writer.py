@@ -15,7 +15,7 @@ función aquí (o un módulo hermano) sin tocar el schema.
 
 from __future__ import annotations
 
-from modulo2_test_architect.src.contract_b import (
+from qualityai_modulo2.src.contract_b import (
     GherkinFeature,
     GherkinTestSuite,
 )

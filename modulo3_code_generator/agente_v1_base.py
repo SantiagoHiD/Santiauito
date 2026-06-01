@@ -53,7 +53,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 # Contract B re-exportado desde el Modulo 2 (entrada del agente)
-from modulo2_test_architect.src.contract_b import (
+from qualityai_modulo2.src.contract_b import (
     GherkinFeature,
     GherkinScenario,
     GherkinTestSuite,

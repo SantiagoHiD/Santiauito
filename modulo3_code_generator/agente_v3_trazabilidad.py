@@ -60,7 +60,7 @@ from modulo3_code_generator.agente_v2_analisis_estatico import (
     ejecutar_radon,
     volcar_codigo_a_disco,
 )
-from modulo2_test_architect.src.contract_b import GherkinTestSuite
+from qualityai_modulo2.src.contract_b import GherkinTestSuite
 from modulo3_code_generator.src.contract_c import (
     CodeGenerationResult,
     CoverageReport,

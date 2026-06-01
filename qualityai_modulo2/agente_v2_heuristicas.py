@@ -1,27 +1,42 @@
-"""Agente v1 (M2): Test Architect base — RAG sobre patrones Katary, sin heuristicas formales.
+"""Agente v2 (M2): Test Architect con heuristicas formales en el prompt.
 
-Esta es la primera version del agente del Modulo 2 (Test Architect).
-ASUME conocidos los conceptos del Modulo 1: tokenizacion, embeddings,
-ChromaDB, RAG, JSON estructurado con Pydantic, retry de validacion.
-Por eso v1 ya viene con TODO eso aplicado de fabrica.
+Esta es la segunda version del agente del Modulo 2. Mismo agente que v1
+estructuralmente — mismo flujo, misma KB, mismo determinismo.
+LO UNICO que cambia respecto a v1 es el prompt: ahora instruye al LLM
+operacionalmente a aplicar Equivalence Partitioning, Boundary Value
+Analysis y Decision Tables al generar los escenarios Gherkin.
 
-Lo que evolucionara en v2, v3, v4 son los conceptos NUEVOS del Modulo 2:
-    v2: aplicacion de heuristicas formales en el prompt (EP, BVA, Decision Tables)
-    v3: clasificacion ISO 25010 + matriz de cobertura por caracteristica de calidad
-    v4: HITL del analista de QA que revisa y aprueba el Contract B
+¿Por que separar v1 de v2?
+    Para que los estudiantes vean en vivo la diferencia entre un prompt
+    generico y un prompt enriquecido con heuristicas. v1 produce escenarios
+    superficiales que parafrasean los AC. v2 produce escenarios disciplinados
+    con multiples casos por AC (positivos, negativos, fronteras, combinaciones).
+    Mismo codigo, mismo modelo, misma KB — solo cambia la INSTRUCCION al LLM.
+    Esa es la leccion central del prompt engineering aplicado a calidad.
 
-Limitaciones de esta version (se resuelven en versiones siguientes):
-    Sin heuristicas formales — el prompt es generico (v2 lo resuelve)
-    Sin clasificacion ISO 25010 — todos los escenarios quedan como functional_suitability (v3)
-    Sin HITL del analista — el output va directo del LLM al disco (v4)
+Cambios concretos respecto a v1:
+    1. SYSTEM_PROMPT enriquecido con instrucciones operacionales de EP, BVA, DT.
+    2. Formato JSON esperado: ahora una LISTA de escenarios por AC (no uno solo).
+    3. Parser adaptado para iterar sobre la lista de escenarios.
+    4. agent_version cambia a "0.2.0-v2-heuristicas".
+
+Limitaciones que aun tiene v2 (se resuelven en versiones siguientes):
+    Sin clasificacion ISO 25010 — todos los escenarios siguen en functional_suitability (v3)
+    Sin HITL del analista — el output sigue yendo directo al disco (v4)
+
+Limitacion sutil de v2 que vale la pena tener en cuenta:
+    v2 AMPLIFICA lo que el AC ya tiene, NO INVENTA donde no hay informacion.
+    Si el AC del Contract A no menciona rangos numericos, BVA no puede aplicarse.
+    Si no hay reglas combinatorias, Decision Tables tampoco. La calidad
+    del input (Contract A) limita lo que v2 puede producir.
 
 Pipeline:
     Contract A → para cada AC → embedding del AC → buscar patrones en KB Katary
-    → prompt enriquecido con patrones → Groq → JSON → Pydantic → GherkinScenario
-    → agrupar en GherkinFeature por user story → construir GherkinTestSuite (Contract B)
+    → prompt enriquecido CON HEURISTICAS → Groq → JSON con LISTA de escenarios
+    → Pydantic → multiples GherkinScenario por AC → construir GherkinTestSuite
 
 Ejecutar:
-    python agente_v1_base.py
+    python agente_v2_heuristicas.py
 """
 
 import json
@@ -46,14 +61,14 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 # Contract A re-exportado desde el Modulo 1 (entrada del agente)
-from modulo2_test_architect.src.contract_a_input import (
+from qualityai_modulo2.src.contract_a_input import (
     AcceptanceCriterion,
     RefinedRequirements,
     UserStory,
 )
 
 # Contract B (salida del agente)
-from modulo2_test_architect.src.contract_b import (
+from qualityai_modulo2.src.contract_b import (
     CoverageMatrix,
     GherkinFeature,
     GherkinScenario,
@@ -197,18 +212,16 @@ def buscar_patrones_similares(modelo, collection, ac: AcceptanceCriterion, top_k
 # PASO 4: Construir prompt MINIMO enriquecido con RAG (Augmented)
 # ============================================================
 def construir_prompt(ac: AcceptanceCriterion, story: UserStory, patrones: list[dict]) -> tuple[str, str]:
-    """Construye el prompt para el LLM con contexto RAG pero SIN heuristicas formales.
+    """Construye el prompt para el LLM con RAG + heuristicas formales explicitas.
 
-    LIMITACION DELIBERADA DE V1: el prompt NO instruye al LLM a aplicar EP, BVA
-    ni Decision Tables. Solo le da el AC + patrones similares de Katary y le pide
-    UN escenario Gherkin. v2 agregara las heuristicas explicitas.
-
-    El proposito de v1 es servir como linea base contra la cual mediremos en v2
-    el efecto de agregar las heuristicas.
+    DIFERENCIA CLAVE RESPECTO A V1:
+    El prompt instruye al LLM operacionalmente a aplicar EP, BVA y Decision Tables.
+    En lugar de pedirle "UN escenario", le pedimos LISTA de escenarios cubriendo
+    todas las clases equivalentes, valores frontera y combinaciones de reglas.
     """
-    # Construir contexto RAG con los patrones similares encontrados
+    # Construir contexto RAG con los patrones similares encontrados (igual que v1)
     contexto_kb = "## PATRONES DE TESTING DEL SGC KATARY\n"
-    contexto_kb += "Usa estos patrones como referencia de calidad para tu escenario:\n\n"
+    contexto_kb += "Usa estos patrones como referencia de calidad para tus escenarios:\n\n"
     for i, p in enumerate(patrones, 1):
         contexto_kb += f"### Patron {i} [{p['id']}] dominio: {p['domain']} (similitud: {p['similitud']:.2f})\n"
         contexto_kb += f"Tecnicas usadas tipicamente: {p['techniques_used']}\n"
@@ -217,22 +230,69 @@ def construir_prompt(ac: AcceptanceCriterion, story: UserStory, patrones: list[d
             contexto_kb += f"   - {s}\n"
         contexto_kb += f"Leccion Katary: {p['lessons_learned_katary']}\n\n"
 
+    # NUEVO en V2: instrucciones operacionales de testing disciplinado
+    instrucciones_heuristicas = (
+        "## INSTRUCCIONES DE TESTING DISCIPLINADO (OBLIGATORIAS)\n"
+        "\n"
+        "Para el criterio de aceptacion recibido, aplica las siguientes tecnicas\n"
+        "de caja negra de manera explicita:\n"
+        "\n"
+        "1. EQUIVALENCE PARTITIONING (EP):\n"
+        "   - Identifica las clases equivalentes validas e invalidas del AC.\n"
+        "   - Genera UN escenario por cada clase identificada (no uno solo).\n"
+        "   - Si el AC trae multiples test_data_examples, cada uno suele\n"
+        "     representar una clase distinta — genera un escenario por cada uno.\n"
+        "\n"
+        "2. BOUNDARY VALUE ANALYSIS (BVA):\n"
+        "   - Si el AC menciona un rango numerico (ej: edad entre 18 y 99),\n"
+        "     genera 4 escenarios adicionales con: limite inferior, justo\n"
+        "     debajo del inferior, limite superior, justo encima del superior.\n"
+        "   - Si el AC menciona longitudes de string (ej: password de 8 a 64\n"
+        "     caracteres), aplica BVA-2 sobre la longitud.\n"
+        "   - Si el AC tiene boundary_values listados explicitamente, usalos.\n"
+        "\n"
+        "3. DECISION TABLES (DT):\n"
+        "   - Si el AC tiene multiples condiciones que se combinan, genera UN\n"
+        "     escenario por cada combinacion relevante segun las reglas.\n"
+        "\n"
+        "## RESULTADO ESPERADO\n"
+        "   - Minimo 1 escenario positivo (si el AC describe un caso valido)\n"
+        "   - Minimo 1 escenario por cada clase invalida identificada\n"
+        "   - Si aplica BVA: 4 escenarios adicionales para los bordes\n"
+        "   - Si aplica DT: 1 escenario por cada regla de la tabla\n"
+        "\n"
+        "NO te conformes con UN escenario por AC. Aplica disciplina formal.\n"
+        "Si el AC es pobre en informacion (sin rangos, sin reglas, sin ejemplos),\n"
+        "genera al menos los escenarios que SI puedas justificar — no inventes\n"
+        "datos no especificados en el AC.\n"
+    )
+
     system = (
-        "Eres un asistente que convierte criterios de aceptacion en escenarios Gherkin (BDD).\n\n"
+        "Eres un Test Architect que convierte criterios de aceptacion en\n"
+        "escenarios Gherkin (BDD) aplicando tecnicas de caja negra disciplinadas.\n\n"
         f"{contexto_kb}\n"
+        f"{instrucciones_heuristicas}\n"
         "## FORMATO DE RESPUESTA OBLIGATORIO\n"
-        "Devuelve UNICAMENTE un JSON valido con esta estructura, sin texto adicional:\n"
+        "Devuelve UNICAMENTE un JSON valido con esta estructura (LISTA de escenarios):\n"
         "{\n"
-        '  "name": "nombre descriptivo del escenario, minimo 10 caracteres",\n'
-        '  "scenario_type": "positive" | "negative" | "boundary" | "edge_case" | "error_handling",\n'
-        '  "tags": ["@tag1", "@tag2"],\n'
-        '  "steps": [\n'
-        '    {"keyword": "Given", "text": "..."},\n'
-        '    {"keyword": "When", "text": "..."},\n'
-        '    {"keyword": "Then", "text": "..."}\n'
+        '  "scenarios": [\n'
+        "    {\n"
+        '      "name": "nombre descriptivo del escenario, minimo 10 caracteres",\n'
+        '      "scenario_type": "positive" | "negative" | "boundary" | "edge_case" | "error_handling",\n'
+        '      "tags": ["@tag1", "@tag2"],\n'
+        '      "heuristic_applied": "EP" | "BVA" | "DT" | "general",\n'
+        '      "steps": [\n'
+        '        {"keyword": "Given", "text": "..."},\n'
+        '        {"keyword": "When", "text": "..."},\n'
+        '        {"keyword": "Then", "text": "..."}\n'
+        "      ]\n"
+        "    },\n"
+        "    // ... mas escenarios segun heuristicas aplicadas\n"
         "  ]\n"
         "}\n"
-        "Cada step.text debe tener minimo 5 caracteres."
+        "\n"
+        "Cada step.text debe tener minimo 5 caracteres.\n"
+        "Cada escenario debe declarar que heuristica aplico (EP, BVA, DT, general)."
     )
 
     user = (
@@ -243,8 +303,11 @@ def construir_prompt(ac: AcceptanceCriterion, story: UserStory, patrones: list[d
         f"   Given: {ac.given}\n"
         f"   When: {ac.when}\n"
         f"   Then: {ac.then}\n"
-        f"   Caso negativo: {'Si' if ac.is_negative_case else 'No'}\n\n"
-        f"Genera UN escenario Gherkin que valide este criterio."
+        f"   Caso negativo: {'Si' if ac.is_negative_case else 'No'}\n"
+        f"   Test data examples: {ac.test_data_examples}\n"
+        f"   Boundary values: {ac.boundary_values}\n\n"
+        f"Genera la LISTA de escenarios Gherkin que validen este criterio,\n"
+        f"aplicando EP, BVA y/o Decision Tables segun corresponda."
     )
 
     return system, user
@@ -276,8 +339,13 @@ def generar_con_groq(client: Groq, system_prompt: str, user_message: str) -> str
 # ============================================================
 # PASO 6: Parsear respuesta del LLM a GherkinScenario (Pydantic)
 # ============================================================
-def parsear_a_escenario(raw_text: str, ac: AcceptanceCriterion, story: UserStory) -> GherkinScenario:
-    """Parsea el JSON crudo del LLM y lo convierte en un GherkinScenario validado.
+def parsear_a_escenarios(raw_text: str, ac: AcceptanceCriterion, story: UserStory) -> list[GherkinScenario]:
+    """Parsea el JSON crudo del LLM y lo convierte en una LISTA de GherkinScenario validados.
+
+    DIFERENCIA RESPECTO A V1:
+    V1 esperaba un objeto unico con un solo escenario. V2 espera una LISTA
+    de escenarios bajo la clave "scenarios", porque el prompt instruye al LLM
+    a generar varios escenarios por AC aplicando heuristicas formales.
 
     Si el JSON tiene formato markdown (```json ... ```), lo limpia.
     Si Pydantic rechaza la estructura, levanta ValidationError con detalles.
@@ -293,19 +361,32 @@ def parsear_a_escenario(raw_text: str, ac: AcceptanceCriterion, story: UserStory
     json_str = text[start:end]
     data = json.loads(json_str)
 
-    steps = [GherkinStep(keyword=s["keyword"], text=s["text"]) for s in data["steps"]]
+    # V2: data["scenarios"] es una LISTA
+    scenarios_data = data.get("scenarios", [])
+    if not scenarios_data:
+        raise ValueError(f"LLM no devolvio escenarios para AC {ac.id}")
 
-    scenario = GherkinScenario(
-        name=data["name"],
-        scenario_type=ScenarioType(data.get("scenario_type", "positive")),
-        tags=data.get("tags", []),
-        steps=steps,
-        acceptance_criterion_id=ac.id,
-        user_story_id=story.id,
-        # quality_characteristic se queda con el default (functional_suitability).
-        # En V1 NO instruimos al LLM a clasificar por ISO 25010 — eso lo hace V3.
-    )
-    return scenario
+    scenarios = []
+    for scenario_data in scenarios_data:
+        steps = [GherkinStep(keyword=s["keyword"], text=s["text"]) for s in scenario_data["steps"]]
+
+        # V2: usar la heuristica como tag adicional para trazabilidad
+        tags = scenario_data.get("tags", [])
+        heuristica = scenario_data.get("heuristic_applied", "general")
+        if heuristica != "general" and f"@{heuristica.lower()}" not in [t.lower() for t in tags]:
+            tags.append(f"@{heuristica.lower()}")
+
+        scenarios.append(GherkinScenario(
+            name=scenario_data["name"],
+            scenario_type=ScenarioType(scenario_data.get("scenario_type", "positive")),
+            tags=tags,
+            steps=steps,
+            acceptance_criterion_id=ac.id,
+            user_story_id=story.id,
+            # quality_characteristic se queda con el default (functional_suitability).
+            # En V2 todavia NO instruimos al LLM a clasificar por ISO 25010 — eso lo hace V3.
+        ))
+    return scenarios
 
 
 # ============================================================
@@ -358,8 +439,8 @@ def construir_contract_b(
     total_boundary = sum(1 for s in all_scenarios if s.scenario_type == ScenarioType.BOUNDARY)
 
     suite = GherkinTestSuite(
-        pipeline_run_id=f"v1-{uuid.uuid4().hex[:8]}",
-        agent_version="0.1.0-v1-base",
+        pipeline_run_id=f"v2-{uuid.uuid4().hex[:8]}",
+        agent_version="0.2.0-v2-heuristicas",
         features=features,
         coverage_matrix=coverage,
         total_scenarios=len(all_scenarios),
@@ -379,15 +460,15 @@ def construir_contract_b(
 # ============================================================
 # PIPELINE COMPLETO
 # ============================================================
-def pipeline_v1(contract_a: RefinedRequirements) -> GherkinTestSuite:
-    """Ejecuta el pipeline completo de M2-V1.
+def pipeline_v2(contract_a: RefinedRequirements) -> GherkinTestSuite:
+    """Ejecuta el pipeline completo de M2-V2.
 
     Pipeline:
-        Contract A → para cada AC → buscar patrones en KB → prompt RAG sin heuristicas
-        → Groq → parsear → GherkinScenario → agrupar en features → Contract B
+        Contract A → para cada AC → buscar patrones en KB → prompt RAG CON heuristicas
+        → Groq → parsear LISTA escenarios → multiples GherkinScenario por AC → Contract B
     """
     print("=" * 60)
-    print("AGENTE M2-V1 — Test Architect base (RAG sin heuristicas)")
+    print("AGENTE M2-V2 — Test Architect con heuristicas formales (RAG + EP + BVA + DT)")
     print("=" * 60)
 
     client = Groq(api_key=GROQ_API_KEY)
@@ -409,12 +490,16 @@ def pipeline_v1(contract_a: RefinedRequirements) -> GherkinTestSuite:
             raw_response = generar_con_groq(client, system_prompt, user_message)
 
             try:
-                scenario = parsear_a_escenario(raw_response, ac, story)
-                scenarios_por_story[story.id].append(scenario)
-                print(f"      Escenario: {scenario.name[:50]}")
+                # V2: el LLM devuelve LISTA de escenarios, no uno solo
+                escenarios_generados = parsear_a_escenarios(raw_response, ac, story)
+                scenarios_por_story[story.id].extend(escenarios_generados)
+                print(f"      Escenarios generados: {len(escenarios_generados)}")
+                for sc in escenarios_generados:
+                    heuristic_tag = next((t for t in sc.tags if t.startswith('@') and t.lower() in ['@ep', '@bva', '@dt']), 'general')
+                    print(f"         [{sc.scenario_type.value} | {heuristic_tag}] {sc.name[:55]}")
             except (json.JSONDecodeError, ValidationError, KeyError, ValueError) as e:
                 print(f"      Error procesando AC {ac.id}: {e}")
-                # En V1 NO reintentamos automaticamente — esa robustez extra viene en versiones siguientes
+                # En V2 tampoco reintentamos automaticamente — esa robustez viene en versiones siguientes
                 continue
 
     # Paso 7: construir el Contract B final
@@ -426,10 +511,13 @@ def pipeline_v1(contract_a: RefinedRequirements) -> GherkinTestSuite:
 # LIMITACIONES DE V1 (mostradas al estudiante al final)
 # ============================================================
 def imprimir_limitaciones():
-    """Imprime las limitaciones de V1 que motivan V2-V4."""
+    """Imprime las limitaciones de V2 que motivan V3-V4."""
     print(f"\n{'=' * 60}")
-    print(f"LIMITACIONES DE V1 (oportunidades de mejora)")
+    print(f"LIMITACIONES DE V2 (oportunidades de mejora)")
     print(f"{'=' * 60}")
+    print(f"   - Limitacion sutil: V2 AMPLIFICA lo que el AC tiene, NO INVENTA")
+    print(f"     Si el AC del Contract A es pobre (sin rangos, sin reglas), V2 produce poco")
+    print(f"     La calidad se hereda del M1. Recordar al analista de requerimientos.")
     print(f"   - Sin heuristicas formales en el prompt (EP, BVA, Decision Tables)")
     print(f"     Solucion: V2 instruye al LLM a aplicar las tecnicas de Clase 1")
     print(f"   - Sin clasificacion ISO 25010 — todos los escenarios quedan como functional_suitability")
@@ -450,20 +538,20 @@ if __name__ == "__main__":
         # Por defecto usar el contract_a de ejemplo del M1
         contract_a_path = str(
             _PROJECT_ROOT
-            / "modulo1_requirements_refiner"
+            / "qualityai_modulo1"
             / "examples"
             / "output"
             / "contract_a_login_ejemplo.json"
         )
 
     contract_a = cargar_contract_a(contract_a_path)
-    suite = pipeline_v1(contract_a)
+    suite = pipeline_v2(contract_a)
 
     # Guardar el Contract B resultante
     output_dir = Path(__file__).parent / "output"
     output_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = output_dir / f"contract_b_v1_{timestamp}.json"
+    output_path = output_dir / f"contract_b_v2_{timestamp}.json"
 
     output_path.write_text(
         suite.model_dump_json(indent=2),

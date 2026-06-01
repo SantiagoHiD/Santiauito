@@ -146,7 +146,7 @@ function displayHistory(stories, m3History = []) {
             const isSigned = story.scenarios.is_signed;
             
             if (isSigned) {
-                // Tiene escenarios Y está firmado - solo botón de descargar
+                // Tiene escenarios Y está firmado
                 statusBadge = `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-300">
                     <i class="fas fa-check-double mr-1"></i>Firmado y Aprobado
                 </span>`;
@@ -155,7 +155,18 @@ function displayHistory(stories, m3History = []) {
                     <i class="fas fa-file-download mr-2"></i>Descargar Reporte Final
                 </button>`;
                 
-                downloadButton = ''; // Sin botón adicional
+                // Boton M3: continuar o ver codigo segun estado
+                if (story.has_code) {
+                    viewButton += ` <button onclick="viewContractC('${story.code.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Ver codigo generado">
+                        <i class="fas fa-code mr-2"></i>Ver Codigo Generado
+                    </button>`;
+                } else {
+                    viewButton += ` <button onclick="continueWithCode('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Continuar a generar codigo (Modulo 3)">
+                        <i class="fas fa-forward mr-2"></i>Continuar a Generar Codigo
+                    </button>`;
+                }
+                
+                downloadButton = '';
             } else {
                 // Tiene escenarios pero NO está firmado
                 statusBadge = `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-300">
@@ -495,18 +506,17 @@ async function completeWithScenarios(storiesFilename) {
         hideLoading();
         
         if (data.success) {
-            // Cerrar el modal de historial si está abierto
             closeHistoryModal();
             
-            // Cambiar al tab principal del generador
             if (typeof switchMainTab === 'function') {
                 switchMainTab('generator');
             }
             
-            // Cargar las historias en la aplicación
-            displayResults(data.data);
+            // Extraer timestamp del filename para vincular con M2
+            const fileParts = storiesFilename.replace('.json', '').split('_');
+            const timestamp = fileParts.length >= 4 ? fileParts.slice(2).join('_') : null;
             
-            // Cambiar al tab de resultados
+            displayResults(data.data, timestamp);
             switchTab('results');
         } else {
             alert('Error al cargar archivo: ' + data.error);
@@ -514,6 +524,58 @@ async function completeWithScenarios(storiesFilename) {
     } catch (error) {
         console.error('Error:', error);
         alert('Error al cargar archivo: ' + error.message);
+        hideLoading();
+    }
+}
+
+async function continueWithCode(storiesFilename, scenariosFilename) {
+    showLoading('Preparando modulo de generacion de codigo...');
+    
+    try {
+        const [resB, resA] = await Promise.all([
+            fetch(`${API_BASE}/history/modulo2/${scenariosFilename}`),
+            fetch(`${API_BASE}/history/modulo1/${storiesFilename}`)
+        ]);
+        
+        const dataB = await resB.json();
+        const dataA = await resA.json();
+        
+        hideLoading();
+        
+        if (dataB.success && dataA.success) {
+            closeHistoryModal();
+            
+            if (typeof switchMainTab === 'function') {
+                switchMainTab('generator');
+            }
+            
+            // Establecer Contract A con timestamp
+            const fileParts = storiesFilename.replace('.json', '').split('_');
+            const timestamp = fileParts.length >= 4 ? fileParts.slice(2).join('_') : null;
+            if (typeof displayResults === 'function') {
+                displayResults(dataA.data, timestamp);
+            }
+            
+            // Guardar filename del Contract B
+            if (typeof currentContractBFilename !== 'undefined') {
+                currentContractBFilename = scenariosFilename;
+            }
+            
+            // displayScenariosInTab setea window.currentContractB y activa tab de codigo
+            if (typeof displayScenariosInTab === 'function') {
+                displayScenariosInTab(dataB.data);
+            }
+            
+            // Cambiar al tab de codigo
+            if (typeof switchTab === 'function') {
+                switchTab('code');
+            }
+        } else {
+            alert('Error al cargar archivos: M2=' + (dataB.error || 'ok') + ' M1=' + (dataA.error || 'ok'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al preparar generacion de codigo: ' + error.message);
         hideLoading();
     }
 }
