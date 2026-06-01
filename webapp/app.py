@@ -21,6 +21,12 @@ import chromadb
 from groq import Groq as _RealGroq
 
 # ============================================================
+# Cargar .env ANTES de leer MOCK_GROQ
+# ============================================================
+WEBAPP_DIR = Path(__file__).resolve().parent
+load_dotenv(WEBAPP_DIR / ".env")
+
+# ============================================================
 # MOCK GLOBAL para pruebas sin tokens
 # ============================================================
 MOCK_GROQ = os.getenv("MOCK_GROQ", "false").lower() in ("true", "1", "yes")
@@ -401,8 +407,6 @@ from src.contract_a import (
     Priority,
     StoryType,
 )
-
-load_dotenv(WEBAPP_DIR / ".env")
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
@@ -834,6 +838,51 @@ def health():
         'models_loaded': modelo is not None and collection is not None,
         'kb_count': collection.count() if collection else 0
     })
+
+
+@app.route('/api/upload-requirements', methods=['POST'])
+def upload_requirements():
+    """Sube un archivo PDF, DOCX o TXT y extrae su texto"""
+    ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.txt'}
+    MAX_SIZE = 10 * 1024 * 1024  # 10MB
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No se envió ningún archivo'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Nombre de archivo vacío'}), 400
+
+    import os
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify({'success': False, 'error': f'Formato no soportado: {ext}. Use .pdf, .docx o .txt'}), 400
+
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_SIZE:
+        return jsonify({'success': False, 'error': 'El archivo excede el tamaño máximo de 10MB'}), 400
+
+    try:
+        if ext == '.txt':
+            text = file.read().decode('utf-8', errors='replace')
+        elif ext == '.pdf':
+            from pypdf import PdfReader
+            reader = PdfReader(file)
+            text = '\n'.join(page.extract_text() or '' for page in reader.pages)
+        elif ext == '.docx':
+            from docx import Document
+            doc = Document(file)
+            text = '\n'.join(p.text for p in doc.paragraphs)
+
+        text = text.strip()
+        if not text:
+            return jsonify({'success': False, 'error': 'No se pudo extraer texto del archivo'}), 400
+
+        return jsonify({'success': True, 'text': text, 'filename': file.filename})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Error al procesar el archivo: {str(e)}'}), 500
 
 
 @app.route('/api/analyze-ambiguities', methods=['POST'])

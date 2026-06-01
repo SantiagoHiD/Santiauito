@@ -557,13 +557,71 @@ function switchTab(tab) {
 
 function loadExample(num) {
     document.getElementById('requirementInput').value = examples[num];
+    removeUploadedFile();
     updateCharCount();
 }
 
 function clearInput() {
-    // Solo limpiar el input de texto
     document.getElementById('requirementInput').value = '';
     updateCharCount();
+    removeUploadedFile();
+}
+
+function handleFileUpload(file) {
+    if (!file) return;
+    const validTypes = ['.pdf', '.docx', '.txt'];
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!validTypes.includes(ext)) {
+        showFileUploadError('Formato no soportado. Use PDF, Word o TXT.');
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        showFileUploadError('El archivo excede el tamaño máximo de 10MB.');
+        return;
+    }
+
+    document.getElementById('fileUploadPlaceholder').classList.add('hidden');
+    document.getElementById('fileUploadInfo').classList.add('hidden');
+    document.getElementById('fileUploadLoading').classList.remove('hidden');
+    document.getElementById('fileUploadError').classList.add('hidden');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/api/upload-requirements', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('fileUploadLoading').classList.add('hidden');
+            if (data.success) {
+                document.getElementById('requirementInput').value = data.text;
+                document.getElementById('uploadedFileName').textContent = data.filename;
+                document.getElementById('fileUploadInfo').classList.remove('hidden');
+                document.getElementById('startProcessBtn').disabled = false;
+                updateCharCount();
+            } else {
+                showFileUploadError(data.error || 'Error al procesar el archivo');
+            }
+        })
+        .catch(err => {
+            document.getElementById('fileUploadLoading').classList.add('hidden');
+            showFileUploadError('Error de conexión al servidor');
+        });
+}
+
+function showFileUploadError(msg) {
+    document.getElementById('fileUploadPlaceholder').classList.add('hidden');
+    document.getElementById('fileUploadInfo').classList.add('hidden');
+    document.getElementById('fileUploadLoading').classList.add('hidden');
+    document.getElementById('fileUploadErrorMessage').textContent = msg;
+    document.getElementById('fileUploadError').classList.remove('hidden');
+}
+
+function removeUploadedFile() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileUploadPlaceholder').classList.remove('hidden');
+    document.getElementById('fileUploadInfo').classList.add('hidden');
+    document.getElementById('fileUploadLoading').classList.add('hidden');
+    document.getElementById('fileUploadError').classList.add('hidden');
 }
 
 function startNewRequirement() {
