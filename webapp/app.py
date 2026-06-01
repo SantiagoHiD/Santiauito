@@ -31,357 +31,232 @@ load_dotenv(WEBAPP_DIR / ".env")
 # ============================================================
 MOCK_GROQ = os.getenv("MOCK_GROQ", "false").lower() in ("true", "1", "yes")
 
-if MOCK_GROQ:
-    class MockGroqChoice:
-        def __init__(self, content):
-            self.message = type('msg', (), {'content': content})()
+MOCK_GROQ_ENABLED = MOCK_GROQ
 
-    class MockCompletions:
-        @staticmethod
-        def create(**kwargs):
-            prompt = str(kwargs.get('messages', []))
-            if 'modules' in prompt or 'Gherkin' in prompt or 'escenarios' in prompt.lower():
-                content = '''{"modules": [{"filename": "usuario.py", "source_code": "import re\\nfrom typing import Dict, Optional\\n\\nclass Usuario:\\n    def __init__(self, nombre: str, email: str, contrase\\u00f1a: str):\\n        self.nombre = nombre\\n        self.email = email\\n        self.contrase\\u00f1a = contrase\\u00f1a\\n\\n    def validar_nombre(self) -> bool:\\n        return 1 <= len(self.nombre) <= 50\\n\\n    def validar_email(self) -> bool:\\n        patron = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$'\\n        return bool(re.match(patron, self.email))", "description": "Modelo de Usuario"}], "tests": [{"test_name": "test_usuario", "source_code": "import pytest\\nfrom usuario import Usuario\\n\\nclass TestUsuario:\\n    def test_nombre_valido(self):\\n        u = Usuario('Juan', 'juan@test.com', 'Pass1234')\\n        assert u.validar_nombre() is True", "target_module": "usuario.py", "scenario_ids": ["AC-001"]}]}'''
-            elif 'historias' in prompt.lower() or 'user story' in prompt.lower():
-                content = '{"stories": [{"id": "US-001", "title": "Registro de Usuario", "as_a": "usuario", "i_want": "registrarme", "so_that": "acceder al sistema", "priority": "high", "acceptance_criteria": [{"id": "AC-001", "description": "Validar email", "given": "El usuario ingresa un email", "when": "el email es valido", "then": "se acepta", "is_negative_case": false, "test_data_examples": ["test@test.com"], "boundary_values": []}]}]}'
-            elif 'escenarios' in prompt.lower() or 'gherkin' in prompt.lower():
-                content = '{"features": [{"name": "Registro de Usuario", "description": "Validacion de registro", "scenarios": [{"name": "Email valido", "type": "positive", "steps": [{"keyword": "Given", "text": "un email valido"}, {"keyword": "When", "text": "se valida"}, {"keyword": "Then", "text": "es aceptado"}]}]}]}'
-            else:
-                content = '{"result": "ok"}'
-            return type('resp', (), {'choices': [MockGroqChoice(content)]})()
+def _get_mock_data(ruta, req_data=None):
+    """Genera datos mock sin llamar a Groq ni guardar en disco.
+    Retorna el dict de datos (sin timestamp)."""
+    print(f"  [MOCK] {ruta} - generando datos mock")
+    now = datetime.now()
+    ts = now.strftime('%Y%m%d_%H%M%S')
+    req_data = req_data or {}
 
-    class MockChat:
-        def __init__(self):
-            self.completions = MockCompletions()
-
-    class MockGroqClient:
-        def __init__(self, **kwargs):
-            self.chat = MockChat()
-
-    # Monkey-patch a nivel del modulo groq para que TODOS los imports
-    # (from groq import Groq) obtengan el mock
-    import groq as _groq_module
-    _groq_module.Groq = MockGroqClient
-    Groq = MockGroqClient
-
-    def _mock_response(ruta):
-        print(f"  [MOCK] {ruta} - respondiendo sin llamar a Groq")
-        if ruta == 'refine':
-            return jsonify({
-                'success': True,
-                'result': {
-                    'pipeline_run_id': 'mock-refine',
-                    'agent_name': 'requirements_refiner',
-                    'agent_version': 'v4',
-                    'created_at': datetime.now().isoformat(),
-                    'original_requirements_text': '',
-                    'project_context': 'resumen del proyecto mock',
-                    'user_stories': [{
-
-                        'id': 'US-001', 'title': 'Registro de Usuario',
-                        'story_type': 'functional', 'priority': 'high',
-                        'as_a': 'usuario', 'i_want': 'registrarme', 'so_that': 'acceder al sistema',
-                        'acceptance_criteria': [{
-                            'id': 'AC-001', 'description': 'Validar email del usuario durante el registro',
-                            'given': 'El usuario ingresa un email',
-                            'when': 'el email es valido',
-                            'then': 'se acepta',
-                            'is_negative_case': False,
-                            'test_data_examples': ['test@test.com'],
-                            'boundary_values': []
-                        }, {
-                            'id': 'AC-002', 'description': 'Validar contrasena segura con requisitos minimos',
-                            'given': 'El usuario ingresa una contrasena',
-                            'when': 'la contrasena cumple los requisitos de seguridad',
-                            'then': 'se acepta como valida',
-                            'is_negative_case': False,
-                            'test_data_examples': ['Pass1234'],
-                            'boundary_values': ['8 caracteres', '64 caracteres']
-                        }],
-                        'business_rules': [], 'dependencies': [],
-                        'ui_elements': [], 'api_endpoints': [],
-                        'ambiguities_resolved': []
-                    }, {
-                        'id': 'US-002', 'title': 'Inicio de Sesion de Usuario',
-                        'story_type': 'functional', 'priority': 'high',
-                        'as_a': 'usuario registrado', 'i_want': 'iniciar sesion', 'so_that': 'acceder al sistema',
-                        'acceptance_criteria': [{
-                            'id': 'AC-003', 'description': 'Validar credenciales correctas para acceso',
-                            'given': 'un usuario registrado con credenciales validas',
-                            'when': 'ingresa usuario y contrasena correctos',
-                            'then': 'accede al sistema exitosamente',
-                            'is_negative_case': False,
-                            'test_data_examples': [{'usuario': 'test@test.com', 'contrasena': 'Pass1234', 'expected': 'acceso concedido'}],
-                            'boundary_values': []
-                        }, {
-                            'id': 'AC-004', 'description': 'Bloquear cuenta tras intentos fallidos de login',
-                            'given': 'un usuario registrado',
-                            'when': 'ingresa contrasena incorrecta 3 veces consecutivas',
-                            'then': 'la cuenta se bloquea temporalmente por 30 minutos',
-                            'is_negative_case': True,
-                            'test_data_examples': [{'usuario': 'test@test.com', 'contrasena': 'wrong', 'intentos': 3, 'expected': 'cuenta bloqueada'}],
-                            'boundary_values': ['2 intentos', '3 intentos', '4 intentos']
-                        }],
-                        'business_rules': [], 'dependencies': ['US-001'],
-                        'ui_elements': [], 'api_endpoints': [],
-                        'ambiguities_resolved': []
-                    }],
-                    'total_ambiguities_found': 2,
-                    'total_assumptions_made': 1
+    if ruta == 'refine':
+        project_id = req_data.get('project_id')
+        data = {
+            'pipeline_run_id': 'mock-refine',
+            'agent_name': 'requirements_refiner',
+            'agent_version': 'v4',
+            'created_at': now.isoformat(),
+            'original_requirements_text': req_data.get('requirement_text', ''),
+            'project_context': 'resumen del proyecto mock',
+            'user_stories': [
+                {
+                    'id': 'US-001', 'title': 'Registro de Usuario',
+                    'story_type': 'functional', 'priority': 'high',
+                    'as_a': 'usuario', 'i_want': 'registrarme', 'so_that': 'acceder al sistema',
+                    'acceptance_criteria': [
+                        {'id': 'AC-001', 'description': 'Validar email del usuario durante el registro',
+                         'given': 'El usuario ingresa un email', 'when': 'el email es valido', 'then': 'se acepta',
+                         'is_negative_case': False, 'test_data_examples': ['test@test.com'], 'boundary_values': []},
+                        {'id': 'AC-002', 'description': 'Validar contrasena segura con requisitos minimos',
+                         'given': 'El usuario ingresa una contrasena', 'when': 'la contrasena cumple los requisitos de seguridad',
+                         'then': 'se acepta como valida', 'is_negative_case': False,
+                         'test_data_examples': ['Pass1234'], 'boundary_values': ['8 caracteres', '64 caracteres']}
+                    ],
+                    'business_rules': [], 'dependencies': [],
+                    'ui_elements': [], 'api_endpoints': [], 'ambiguities_resolved': []
                 },
-                'output_file': 'mock_output_refine.json',
-                'tokens_used': 0,
-                'timestamp': datetime.now().strftime('%Y%m%d_%H%M%S')
-            })
-        elif ruta == 'scenarios':
-            from datetime import datetime as dt_mock
-            now = dt_mock.now()
-            ts = now.strftime('%Y%m%d_%H%M%S')
-            contract_b = {
-                'pipeline_run_id': f'mock-m2-{ts}',
-                'agent_name': 'test_architect',
-                'agent_version': '0.3.0-v3-iso25010',
-                'created_at': now.isoformat(),
-                'features': [
-                    {
-                        'name': 'Registro de Usuario (US-001)',
-                        'description': 'Creacion de cuenta y validacion de datos personales',
-                        'tags': ['smoke', 'regression'],
-                        'scenarios': [
-                            {
-                                'name': 'Email valido',
-                                'scenario_type': 'positive',
-                                'quality_characteristic': 'functional_suitability',
-                                'heuristic_applied': 'EP',
-                                'tags': ['smoke'],
-                                'steps': [
-                                    {'keyword': 'Given', 'text': 'un usuario ingresa un email valido'},
-                                    {'keyword': 'When', 'text': 'el sistema valida el formato del email'},
-                                    {'keyword': 'Then', 'text': 'el email es aceptado correctamente'}
-                                ],
-                                'acceptance_criterion_id': 'AC-001',
-                                'user_story_id': 'US-001'
-                            },
-                            {
-                                'name': 'Email invalido',
-                                'scenario_type': 'negative',
-                                'quality_characteristic': 'functional_suitability',
-                                'heuristic_applied': 'BVA',
-                                'tags': ['regression'],
-                                'steps': [
-                                    {'keyword': 'Given', 'text': 'un usuario ingresa un email sin arroba'},
-                                    {'keyword': 'When', 'text': 'el sistema valida el formato del email'},
-                                    {'keyword': 'Then', 'text': 'muestra error Email invalido'}
-                                ],
-                                'acceptance_criterion_id': 'AC-001',
-                                'user_story_id': 'US-001'
-                            },
-                            {
-                                'name': 'Contrasena segura',
-                                'scenario_type': 'positive',
-                                'quality_characteristic': 'security',
-                                'heuristic_applied': 'EP',
-                                'tags': ['security'],
-                                'steps': [
-                                    {'keyword': 'Given', 'text': 'un usuario ingresa una contrasena de 12 caracteres'},
-                                    {'keyword': 'When', 'text': 'el sistema evalua la fortaleza de la contrasena'},
-                                    {'keyword': 'Then', 'text': 'la contrasena es aceptada como segura'}
-                                ],
-                                'acceptance_criterion_id': 'AC-002',
-                                'user_story_id': 'US-001'
-                            },
-                            {
-                                'name': 'Contrasena debil',
-                                'scenario_type': 'negative',
-                                'quality_characteristic': 'security',
-                                'heuristic_applied': 'BVA',
-                                'tags': ['security', 'validation'],
-                                'steps': [
-                                    {'keyword': 'Given', 'text': 'un usuario ingresa una contrasena de 4 caracteres'},
-                                    {'keyword': 'When', 'text': 'el sistema evalua la fortaleza de la contrasena'},
-                                    {'keyword': 'Then', 'text': 'muestra error Contrasena debil'}
-                                ],
-                                'acceptance_criterion_id': 'AC-002',
-                                'user_story_id': 'US-001'
-                            }
-                        ],
-                        'user_story_id': 'US-001'
-                    },
-                    {
-                        'name': 'Inicio de Sesion (US-002)',
-                        'description': 'Autenticacion de usuarios registrados en el sistema',
-                        'tags': ['smoke', 'security'],
-                        'scenarios': [
-                            {
-                                'name': 'Login exitoso',
-                                'scenario_type': 'positive',
-                                'quality_characteristic': 'functional_suitability',
-                                'heuristic_applied': 'general',
-                                'tags': ['smoke'],
-                                'steps': [
-                                    {'keyword': 'Given', 'text': 'un usuario registrado con credenciales validas'},
-                                    {'keyword': 'When', 'text': 'ingresa usuario y contrasena correctos'},
-                                    {'keyword': 'Then', 'text': 'accede al sistema exitosamente'}
-                                ],
-                                'acceptance_criterion_id': 'AC-003',
-                                'user_story_id': 'US-002'
-                            },
-                            {
-                                'name': 'Login bloqueo',
-                                'scenario_type': 'negative',
-                                'quality_characteristic': 'security',
-                                'heuristic_applied': 'BVA',
-                                'tags': ['security'],
-                                'steps': [
-                                    {'keyword': 'Given', 'text': 'un usuario registrado con credenciales validas'},
-                                    {'keyword': 'When', 'text': 'ingresa contrasena incorrecta 3 veces seguidas'},
-                                    {'keyword': 'Then', 'text': 'la cuenta se bloquea temporalmente por 30 minutos'}
-                                ],
-                                'acceptance_criterion_id': 'AC-004',
-                                'user_story_id': 'US-002'
-                            },
-                            {
-                                'name': 'Recuperar contrasena',
-                                'scenario_type': 'positive',
-                                'quality_characteristic': 'usability',
-                                'heuristic_applied': 'general',
-                                'tags': ['regression'],
-                                'steps': [
-                                    {'keyword': 'Given', 'text': 'un usuario olvido su contrasena'},
-                                    {'keyword': 'When', 'text': 'solicita recuperacion por email registrado'},
-                                    {'keyword': 'Then', 'text': 'recibe un enlace de restablecimiento valido por 24 horas'}
-                                ],
-                                'acceptance_criterion_id': 'AC-003',
-                                'user_story_id': 'US-002'
-                            }
-                        ],
-                        'user_story_id': 'US-002'
-                    }
-                ],
-                'coverage_matrix': [
-                    {
-                        'user_story_id': 'US-001',
-                        'criterion_id': 'AC-001',
-                        'scenario_names': ['Email valido', 'Email invalido'],
-                        'coverage_type': ['positive', 'negative'],
-                        'quality_characteristics_covered': ['functional_suitability']
-                    },
-                    {
-                        'user_story_id': 'US-001',
-                        'criterion_id': 'AC-002',
-                        'scenario_names': ['Contrasena segura', 'Contrasena debil'],
-                        'coverage_type': ['positive', 'negative'],
-                        'quality_characteristics_covered': ['security']
-                    },
-                    {
-                        'user_story_id': 'US-002',
-                        'criterion_id': 'AC-003',
-                        'scenario_names': ['Login exitoso', 'Recuperar contrasena'],
-                        'coverage_type': ['positive', 'positive'],
-                        'quality_characteristics_covered': ['functional_suitability', 'usability']
-                    },
-                    {
-                        'user_story_id': 'US-002',
-                        'criterion_id': 'AC-004',
-                        'scenario_names': ['Login bloqueo'],
-                        'coverage_type': ['negative'],
-                        'quality_characteristics_covered': ['security']
-                    }
-                ],
-                'total_scenarios': 7,
-                'total_positive': 4,
-                'total_negative': 3,
-                'total_boundary': 0,
-                'coverage_by_characteristic': {
-                    'functional_suitability': 3,
-                    'security': 3,
-                    'usability': 1
+                {
+                    'id': 'US-002', 'title': 'Inicio de Sesion de Usuario',
+                    'story_type': 'functional', 'priority': 'high',
+                    'as_a': 'usuario registrado', 'i_want': 'iniciar sesion', 'so_that': 'acceder al sistema',
+                    'acceptance_criteria': [
+                        {'id': 'AC-003', 'description': 'Validar credenciales correctas para acceso',
+                         'given': 'un usuario registrado con credenciales validas', 'when': 'ingresa usuario y contrasena correctos',
+                         'then': 'accede al sistema exitosamente', 'is_negative_case': False,
+                         'test_data_examples': [{'usuario': 'test@test.com', 'contrasena': 'Pass1234', 'expected': 'acceso concedido'}],
+                         'boundary_values': []},
+                        {'id': 'AC-004', 'description': 'Bloquear cuenta tras intentos fallidos de login',
+                         'given': 'un usuario registrado', 'when': 'ingresa contrasena incorrecta 3 veces consecutivas',
+                         'then': 'la cuenta se bloquea temporalmente por 30 minutos', 'is_negative_case': True,
+                         'test_data_examples': [{'usuario': 'test@test.com', 'contrasena': 'wrong', 'intentos': 3, 'expected': 'cuenta bloqueada'}],
+                         'boundary_values': ['2 intentos', '3 intentos', '4 intentos']}
+                    ],
+                    'business_rules': [], 'dependencies': ['US-001'],
+                    'ui_elements': [], 'api_endpoints': [], 'ambiguities_resolved': []
                 }
-            }
-            # Persistir Contract B mockeado para que update_contract_b funcione
-            output_dir_m2 = MODULO2_DIR / "output"
-            output_dir_m2.mkdir(exist_ok=True, parents=True)
-            mock_filename_m2 = f"contract_b_mock_{ts}.json"
-            mock_file_m2 = output_dir_m2 / mock_filename_m2
-            mock_file_m2.write_text(json.dumps(contract_b, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-            return jsonify({
-                'success': True,
-                'contract_b': contract_b,
-                'output_file': str(mock_file_m2),
-                'filename': mock_filename_m2,
-                'version': 'v3'
-            })
-        elif ruta == 'code':
-            import tempfile
-            mock_contract_c = {
-                'pipeline_run_id': 'mock-code',
-                'agent_name': 'code_generator',
-                'agent_version': '0.3.0-v3-trazabilidad',
-                'created_at': datetime.now().isoformat(),
-                'source_contract_b_id': 'mock-contract-b-webapp',
-                'generated_code': [
-                    {'filename': 'usuario.py', 'user_story_id': 'US-001', 'description': 'Modelo de Usuario con validaciones', 'source_code': 'import re\nfrom typing import Optional\n\nclass Usuario:\n    def __init__(self, nombre: str, email: str, password: str):\n        self.nombre = nombre\n        self.email = email\n        self.password = password\n\n    def validar_nombre(self) -> bool:\n        return bool(self.nombre and 1 <= len(self.nombre) <= 50)\n\n    def validar_email(self) -> bool:\n        patron = r\'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$\'\n        return bool(re.match(patron, self.email))\n\n    def validar_password_fortaleza(self) -> dict:\n        result = {"valida": False, "nivel": "debil", "errores": []}\n        if len(self.password) < 8:\n            result["errores"].append("Debe tener al menos 8 caracteres")\n        if not re.search(r\'[A-Z]\', self.password):\n            result["errores"].append("Debe contener mayuscula")\n        if not re.search(r\'[0-9]\', self.password):\n            result["errores"].append("Debe contener numero")\n        if not result["errores"]:\n            result["valida"] = True\n            result["nivel"] = "fuerte"\n        return result\n'},
-                    {'filename': 'auth_service.py', 'user_story_id': 'US-002', 'description': 'Servicio de autenticación y login', 'source_code': 'from usuario import Usuario\nfrom typing import Optional\n\nclass AuthService:\n    def __init__(self):\n        self._usuarios: dict[str, Usuario] = {}\n        self._intentos_fallidos: dict[str, int] = {}\n\n    def registrar(self, usuario: Usuario) -> dict:\n        if usuario.email in self._usuarios:\n            return {"exito": False, "error": "Email ya registrado"}\n        self._usuarios[usuario.email] = usuario\n        return {"exito": True, "mensaje": "Usuario registrado"}\n\n    def login(self, email: str, password: str) -> dict:\n        if self._intentos_fallidos.get(email, 0) >= 3:\n            return {"exito": False, "error": "Cuenta bloqueada temporalmente"}\n        usuario = self._usuarios.get(email)\n        if not usuario or usuario.password != password:\n            self._intentos_fallidos[email] = self._intentos_fallidos.get(email, 0) + 1\n            return {"exito": False, "error": "Credenciales invalidas"}\n        self._intentos_fallidos[email] = 0\n        return {"exito": True, "mensaje": "Login exitoso", "usuario": usuario}\n\n    def recuperar_password(self, email: str) -> dict:\n        if email not in self._usuarios:\n            return {"exito": False, "error": "Email no registrado"}\n        return {"exito": True, "mensaje": "Enlace de recuperacion enviado", "token_valido_horas": 24}\n'},
-                    {'filename': 'perfil_service.py', 'user_story_id': 'US-003', 'description': 'Servicio de gestión de perfil', 'source_code': 'import os\nfrom typing import Optional\n\nclass PerfilService:\n    MAX_AVATAR_SIZE = 2 * 1024 * 1024\n\n    def __init__(self):\n        self._perfiles: dict[str, dict] = {}\n\n    def actualizar_avatar(self, email: str, datos_imagen: bytes) -> dict:\n        if len(datos_imagen) > self.MAX_AVATAR_SIZE:\n            return {"exito": False, "error": "El archivo excede el tamano maximo de 2MB"}\n        if email not in self._perfiles:\n            self._perfiles[email] = {}\n        self._perfiles[email]["avatar"] = datos_imagen\n        return {"exito": True, "mensaje": "Avatar actualizado"}\n\n    def cambiar_email(self, email_actual: str, nuevo_email: str) -> dict:\n        if email_actual not in self._perfiles:\n            return {"exito": False, "error": "Perfil no encontrado"}\n        self._perfiles[nuevo_email] = self._perfiles.pop(email_actual)\n        return {"exito": True, "mensaje": "Email actualizado correctamente"}\n'},
+            ],
+            'total_ambiguities_found': 2,
+            'total_assumptions_made': 1
+        }
+        if project_id:
+            data['project_id'] = project_id
+        return data, ts
+
+    elif ruta == 'scenarios':
+        contract_b = {
+            'pipeline_run_id': f'mock-m2-{ts}',
+            'agent_name': 'test_architect',
+            'agent_version': '0.3.0-v3-iso25010',
+            'created_at': now.isoformat(),
+            'features': [
+                {
+                    'name': 'Registro de Usuario (US-001)',
+                    'description': 'Creacion de cuenta y validacion de datos personales',
+                    'tags': ['smoke', 'regression'],
+                    'scenarios': [
+                        {'name': 'Email valido', 'scenario_type': 'positive', 'quality_characteristic': 'functional_suitability',
+                         'heuristic_applied': 'EP', 'tags': ['smoke'],
+                         'steps': [{'keyword': 'Given', 'text': 'un usuario ingresa un email valido'},
+                                   {'keyword': 'When', 'text': 'el sistema valida el formato del email'},
+                                   {'keyword': 'Then', 'text': 'el email es aceptado correctamente'}],
+                         'acceptance_criterion_id': 'AC-001', 'user_story_id': 'US-001'},
+                        {'name': 'Email invalido', 'scenario_type': 'negative', 'quality_characteristic': 'functional_suitability',
+                         'heuristic_applied': 'BVA', 'tags': ['regression'],
+                         'steps': [{'keyword': 'Given', 'text': 'un usuario ingresa un email sin arroba'},
+                                   {'keyword': 'When', 'text': 'el sistema valida el formato del email'},
+                                   {'keyword': 'Then', 'text': 'muestra error Email invalido'}],
+                         'acceptance_criterion_id': 'AC-001', 'user_story_id': 'US-001'},
+                        {'name': 'Contrasena segura', 'scenario_type': 'positive', 'quality_characteristic': 'security',
+                         'heuristic_applied': 'EP', 'tags': ['security'],
+                         'steps': [{'keyword': 'Given', 'text': 'un usuario ingresa una contrasena de 12 caracteres'},
+                                   {'keyword': 'When', 'text': 'el sistema evalua la fortaleza de la contrasena'},
+                                   {'keyword': 'Then', 'text': 'la contrasena es aceptada como segura'}],
+                         'acceptance_criterion_id': 'AC-002', 'user_story_id': 'US-001'},
+                        {'name': 'Contrasena debil', 'scenario_type': 'negative', 'quality_characteristic': 'security',
+                         'heuristic_applied': 'BVA', 'tags': ['security', 'validation'],
+                         'steps': [{'keyword': 'Given', 'text': 'un usuario ingresa una contrasena de 4 caracteres'},
+                                   {'keyword': 'When', 'text': 'el sistema evalua la fortaleza de la contrasena'},
+                                   {'keyword': 'Then', 'text': 'muestra error Contrasena debil'}],
+                         'acceptance_criterion_id': 'AC-002', 'user_story_id': 'US-001'}
+                    ],
+                    'user_story_id': 'US-001'
+                },
+                {
+                    'name': 'Inicio de Sesion (US-002)',
+                    'description': 'Autenticacion de usuarios registrados en el sistema',
+                    'tags': ['smoke', 'security'],
+                    'scenarios': [
+                        {'name': 'Login exitoso', 'scenario_type': 'positive', 'quality_characteristic': 'functional_suitability',
+                         'heuristic_applied': 'general', 'tags': ['smoke'],
+                         'steps': [{'keyword': 'Given', 'text': 'un usuario registrado con credenciales validas'},
+                                   {'keyword': 'When', 'text': 'ingresa usuario y contrasena correctos'},
+                                   {'keyword': 'Then', 'text': 'accede al sistema exitosamente'}],
+                         'acceptance_criterion_id': 'AC-003', 'user_story_id': 'US-002'},
+                        {'name': 'Login bloqueo', 'scenario_type': 'negative', 'quality_characteristic': 'security',
+                         'heuristic_applied': 'BVA', 'tags': ['security'],
+                         'steps': [{'keyword': 'Given', 'text': 'un usuario registrado con credenciales validas'},
+                                   {'keyword': 'When', 'text': 'ingresa contrasena incorrecta 3 veces seguidas'},
+                                   {'keyword': 'Then', 'text': 'la cuenta se bloquea temporalmente por 30 minutos'}],
+                         'acceptance_criterion_id': 'AC-004', 'user_story_id': 'US-002'},
+                        {'name': 'Recuperar contrasena', 'scenario_type': 'positive', 'quality_characteristic': 'usability',
+                         'heuristic_applied': 'general', 'tags': ['regression'],
+                         'steps': [{'keyword': 'Given', 'text': 'un usuario olvido su contrasena'},
+                                   {'keyword': 'When', 'text': 'solicita recuperacion por email registrado'},
+                                   {'keyword': 'Then', 'text': 'recibe un enlace de restablecimiento valido por 24 horas'}],
+                         'acceptance_criterion_id': 'AC-003', 'user_story_id': 'US-002'}
+                    ],
+                    'user_story_id': 'US-002'
+                }
+            ],
+            'coverage_matrix': [
+                {'user_story_id': 'US-001', 'criterion_id': 'AC-001',
+                 'scenario_names': ['Email valido', 'Email invalido'],
+                 'coverage_type': ['positive', 'negative'],
+                 'quality_characteristics_covered': ['functional_suitability']},
+                {'user_story_id': 'US-001', 'criterion_id': 'AC-002',
+                 'scenario_names': ['Contrasena segura', 'Contrasena debil'],
+                 'coverage_type': ['positive', 'negative'],
+                 'quality_characteristics_covered': ['security']},
+                {'user_story_id': 'US-002', 'criterion_id': 'AC-003',
+                 'scenario_names': ['Login exitoso', 'Recuperar contrasena'],
+                 'coverage_type': ['positive', 'positive'],
+                 'quality_characteristics_covered': ['functional_suitability', 'usability']},
+                {'user_story_id': 'US-002', 'criterion_id': 'AC-004',
+                 'scenario_names': ['Login bloqueo'],
+                 'coverage_type': ['negative'],
+                 'quality_characteristics_covered': ['security']}
+            ],
+            'total_scenarios': 7, 'total_positive': 4, 'total_negative': 3, 'total_boundary': 0,
+            'coverage_by_characteristic': {'functional_suitability': 3, 'security': 3, 'usability': 1}
+        }
+        return contract_b, None
+
+    elif ruta == 'code':
+        contract_c = {
+            'pipeline_run_id': 'mock-code',
+            'agent_name': 'code_generator',
+            'agent_version': '0.3.0-v3-trazabilidad',
+            'created_at': now.isoformat(),
+            'source_contract_b_id': 'mock-contract-b-webapp',
+            'generated_code': [
+                {'filename': 'usuario.py', 'user_story_id': 'US-001', 'description': 'Modelo de Usuario con validaciones',
+                 'source_code': 'import re\nfrom typing import Optional\n\nclass Usuario:\n    def __init__(self, nombre: str, email: str, password: str):\n        self.nombre = nombre\n        self.email = email\n        self.password = password\n\n    def validar_nombre(self) -> bool:\n        return bool(self.nombre and 1 <= len(self.nombre) <= 50)\n\n    def validar_email(self) -> bool:\n        patron = r\'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$\'\n        return bool(re.match(patron, self.email))\n\n    def validar_password_fortaleza(self) -> dict:\n        result = {"valida": False, "nivel": "debil", "errores": []}\n        if len(self.password) < 8:\n            result["errores"].append("Debe tener al menos 8 caracteres")\n        if not re.search(r\'[A-Z]\', self.password):\n            result["errores"].append("Debe contener mayuscula")\n        if not re.search(r\'[0-9]\', self.password):\n            result["errores"].append("Debe contener numero")\n        if not result["errores"]:\n            result["valida"] = True\n            result["nivel"] = "fuerte"\n        return result\n'},
+                {'filename': 'auth_service.py', 'user_story_id': 'US-002', 'description': 'Servicio de autenticación y login',
+                 'source_code': 'from usuario import Usuario\nfrom typing import Optional\n\nclass AuthService:\n    def __init__(self):\n        self._usuarios: dict[str, Usuario] = {}\n        self._intentos_fallidos: dict[str, int] = {}\n\n    def registrar(self, usuario: Usuario) -> dict:\n        if usuario.email in self._usuarios:\n            return {"exito": False, "error": "Email ya registrado"}\n        self._usuarios[usuario.email] = usuario\n        return {"exito": True, "mensaje": "Usuario registrado"}\n\n    def login(self, email: str, password: str) -> dict:\n        if self._intentos_fallidos.get(email, 0) >= 3:\n            return {"exito": False, "error": "Cuenta bloqueada temporalmente"}\n        usuario = self._usuarios.get(email)\n        if not usuario or usuario.password != password:\n            self._intentos_fallidos[email] = self._intentos_fallidos.get(email, 0) + 1\n            return {"exito": False, "error": "Credenciales invalidas"}\n        self._intentos_fallidos[email] = 0\n        return {"exito": True, "mensaje": "Login exitoso", "usuario": usuario}\n\n    def recuperar_password(self, email: str) -> dict:\n        if email not in self._usuarios:\n            return {"exito": False, "error": "Email no registrado"}\n        return {"exito": True, "mensaje": "Enlace de recuperacion enviado", "token_valido_horas": 24}\n'},
+                {'filename': 'perfil_service.py', 'user_story_id': 'US-003', 'description': 'Servicio de gestión de perfil',
+                 'source_code': 'import os\nfrom typing import Optional\n\nclass PerfilService:\n    MAX_AVATAR_SIZE = 2 * 1024 * 1024\n\n    def __init__(self):\n        self._perfiles: dict[str, dict] = {}\n\n    def actualizar_avatar(self, email: str, datos_imagen: bytes) -> dict:\n        if len(datos_imagen) > self.MAX_AVATAR_SIZE:\n            return {"exito": False, "error": "El archivo excede el tamano maximo de 2MB"}\n        if email not in self._perfiles:\n            self._perfiles[email] = {}\n        self._perfiles[email]["avatar"] = datos_imagen\n        return {"exito": True, "mensaje": "Avatar actualizado"}\n\n    def cambiar_email(self, email_actual: str, nuevo_email: str) -> dict:\n        if email_actual not in self._perfiles:\n            return {"exito": False, "error": "Perfil no encontrado"}\n        self._perfiles[nuevo_email] = self._perfiles.pop(email_actual)\n        return {"exito": True, "mensaje": "Email actualizado correctamente"}\n'},
+            ],
+            'generated_tests': [
+                {'test_name': 'test_usuario', 'target_module': 'usuario.py',
+                 'scenario_ids': ['S-001', 'S-002', 'S-004'],
+                 'source_code': 'import pytest\nfrom usuario import Usuario\n\nclass TestUsuario:\n    def test_nombre_valido(self):\n        u = Usuario("Juan", "juan@test.com", "Pass1234")\n        assert u.validar_nombre() is True\n\n    def test_email_valido(self):\n        u = Usuario("Juan", "juan@test.com", "Pass1234")\n        assert u.validar_email() is True\n\n    def test_email_invalido_sin_arroba(self):\n        u = Usuario("Juan", "juan test.com", "Pass1234")\n        assert u.validar_email() is False\n\n    def test_password_fortaleza_valida(self):\n        u = Usuario("Juan", "juan@test.com", "StrongPass1")\n        res = u.validar_password_fortaleza()\n        assert res["valida"] is True\n        assert res["nivel"] == "fuerte"\n\n    def test_password_corta(self):\n        u = Usuario("Juan", "juan@test.com", "Ab1")\n        res = u.validar_password_fortaleza()\n        assert res["valida"] is False\n'},
+                {'test_name': 'test_auth_service', 'target_module': 'auth_service.py',
+                 'scenario_ids': ['S-005', 'S-006', 'S-007'],
+                 'source_code': 'import pytest\nfrom auth_service import AuthService\nfrom usuario import Usuario\n\nclass TestAuthService:\n    def setup_method(self):\n        self.service = AuthService()\n        self.usuario = Usuario("Juan", "juan@test.com", "Pass1234")\n\n    def test_registro_exitoso(self):\n        res = self.service.registrar(self.usuario)\n        assert res["exito"] is True\n\n    def test_registro_email_duplicado(self):\n        self.service.registrar(self.usuario)\n        res = self.service.registrar(self.usuario)\n        assert res["exito"] is False\n        assert "registrado" in res["error"]\n\n    def test_login_exitoso(self):\n        self.service.registrar(self.usuario)\n        res = self.service.login("juan@test.com", "Pass1234")\n        assert res["exito"] is True\n\n    def test_login_bloqueo_tres_intentos(self):\n        self.service.registrar(self.usuario)\n        for _ in range(3):\n            self.service.login("juan@test.com", "wrong")\n        res = self.service.login("juan@test.com", "Pass1234")\n        assert res["exito"] is False\n        assert "bloqueada" in res["error"]\n\n    def test_recuperar_password_email_no_registrado(self):\n        res = self.service.recuperar_password("no@existe.com")\n        assert res["exito"] is False\n'},
+                {'test_name': 'test_perfil_service', 'target_module': 'perfil_service.py',
+                 'scenario_ids': ['S-008', 'S-009', 'S-010'],
+                 'source_code': 'import pytest\nfrom perfil_service import PerfilService\n\nclass TestPerfilService:\n    def setup_method(self):\n        self.service = PerfilService()\n\n    def test_actualizar_avatar_exitoso(self):\n        res = self.service.actualizar_avatar("test@test.com", b"imagen_data")\n        assert res["exito"] is True\n\n    def test_avatar_excede_tamano(self):\n        data = b"x" * (2 * 1024 * 1024 + 1)\n        res = self.service.actualizar_avatar("test@test.com", data)\n        assert res["exito"] is False\n        assert "excede" in res["error"]\n\n    def test_cambiar_email_exitoso(self):\n        self.service.actualizar_avatar("viejo@test.com", b"data")\n        res = self.service.cambiar_email("viejo@test.com", "nuevo@test.com")\n        assert res["exito"] is True\n'},
+            ],
+            'total_modules': 3, 'total_tests': 13,
+            'quality_report': {
+                'functions_exceeding_threshold': 1, 'maintainability_index': 72.5,
+                'security_findings': [{'test_id': 'B101', 'severity': 'medium',
+                    'description': 'Posible hardcoded password en auth_service.py:15',
+                    'module': 'auth_service.py', 'line_number': 15}],
+                'function_metrics': [
+                    {'function_name': 'Usuario.validar_password_fortaleza', 'cyclomatic_complexity': 7,
+                     'cognitive_complexity': 8, 'cc_band': 'C', 'exceeds_threshold': True},
+                    {'function_name': 'AuthService.login', 'cyclomatic_complexity': 5,
+                     'cognitive_complexity': 5, 'cc_band': 'B', 'exceeds_threshold': False},
+                    {'function_name': 'PerfilService.actualizar_avatar', 'cyclomatic_complexity': 3,
+                     'cognitive_complexity': 2, 'cc_band': 'A', 'exceeds_threshold': False},
+                    {'function_name': 'Usuario.validar_email', 'cyclomatic_complexity': 2,
+                     'cognitive_complexity': 1, 'cc_band': 'A', 'exceeds_threshold': False},
                 ],
-                'generated_tests': [
-                    {'test_name': 'test_usuario', 'source_code': 'import pytest\nfrom usuario import Usuario\n\nclass TestUsuario:\n    def test_nombre_valido(self):\n        u = Usuario("Juan", "juan@test.com", "Pass1234")\n        assert u.validar_nombre() is True\n\n    def test_email_valido(self):\n        u = Usuario("Juan", "juan@test.com", "Pass1234")\n        assert u.validar_email() is True\n\n    def test_email_invalido_sin_arroba(self):\n        u = Usuario("Juan", "juan test.com", "Pass1234")\n        assert u.validar_email() is False\n\n    def test_password_fortaleza_valida(self):\n        u = Usuario("Juan", "juan@test.com", "StrongPass1")\n        res = u.validar_password_fortaleza()\n        assert res["valida"] is True\n        assert res["nivel"] == "fuerte"\n\n    def test_password_corta(self):\n        u = Usuario("Juan", "juan@test.com", "Ab1")\n        res = u.validar_password_fortaleza()\n        assert res["valida"] is False\n', 'target_module': 'usuario.py', 'scenario_ids': ['S-001', 'S-002', 'S-004']},
-                    {'test_name': 'test_auth_service', 'source_code': 'import pytest\nfrom auth_service import AuthService\nfrom usuario import Usuario\n\nclass TestAuthService:\n    def setup_method(self):\n        self.service = AuthService()\n        self.usuario = Usuario("Juan", "juan@test.com", "Pass1234")\n\n    def test_registro_exitoso(self):\n        res = self.service.registrar(self.usuario)\n        assert res["exito"] is True\n\n    def test_registro_email_duplicado(self):\n        self.service.registrar(self.usuario)\n        res = self.service.registrar(self.usuario)\n        assert res["exito"] is False\n        assert "registrado" in res["error"]\n\n    def test_login_exitoso(self):\n        self.service.registrar(self.usuario)\n        res = self.service.login("juan@test.com", "Pass1234")\n        assert res["exito"] is True\n\n    def test_login_bloqueo_tres_intentos(self):\n        self.service.registrar(self.usuario)\n        for _ in range(3):\n            self.service.login("juan@test.com", "wrong")\n        res = self.service.login("juan@test.com", "Pass1234")\n        assert res["exito"] is False\n        assert "bloqueada" in res["error"]\n\n    def test_recuperar_password_email_no_registrado(self):\n        res = self.service.recuperar_password("no@existe.com")\n        assert res["exito"] is False\n', 'target_module': 'auth_service.py', 'scenario_ids': ['S-005', 'S-006', 'S-007']},
-                    {'test_name': 'test_perfil_service', 'source_code': 'import pytest\nfrom perfil_service import PerfilService\n\nclass TestPerfilService:\n    def setup_method(self):\n        self.service = PerfilService()\n\n    def test_actualizar_avatar_exitoso(self):\n        res = self.service.actualizar_avatar("test@test.com", b"imagen_data")\n        assert res["exito"] is True\n\n    def test_avatar_excede_tamano(self):\n        data = b"x" * (2 * 1024 * 1024 + 1)\n        res = self.service.actualizar_avatar("test@test.com", data)\n        assert res["exito"] is False\n        assert "excede" in res["error"]\n\n    def test_cambiar_email_exitoso(self):\n        self.service.actualizar_avatar("viejo@test.com", b"data")\n        res = self.service.cambiar_email("viejo@test.com", "nuevo@test.com")\n        assert res["exito"] is True\n', 'target_module': 'perfil_service.py', 'scenario_ids': ['S-008', 'S-009', 'S-010']},
-                ],
-                'total_modules': 3, 'total_tests': 13,
-                'quality_report': {
-                    'functions_exceeding_threshold': 1,
-                    'maintainability_index': 72.5,
-                    'security_findings': [
-                        {'test_id': 'B101', 'severity': 'medium', 'description': 'Posible hardcoded password en auth_service.py:15', 'module': 'auth_service.py', 'line_number': 15},
-                    ],
-                    'function_metrics': [
-                        {'function_name': 'Usuario.validar_password_fortaleza', 'cyclomatic_complexity': 7, 'cognitive_complexity': 8, 'cc_band': 'C', 'exceeds_threshold': True},
-                        {'function_name': 'AuthService.login', 'cyclomatic_complexity': 5, 'cognitive_complexity': 5, 'cc_band': 'B', 'exceeds_threshold': False},
-                        {'function_name': 'PerfilService.actualizar_avatar', 'cyclomatic_complexity': 3, 'cognitive_complexity': 2, 'cc_band': 'A', 'exceeds_threshold': False},
-                        {'function_name': 'Usuario.validar_email', 'cyclomatic_complexity': 2, 'cognitive_complexity': 1, 'cc_band': 'A', 'exceeds_threshold': False},
-                    ],
-                    'iso_25010_coverage': [
-                        {'characteristic': 'functional_suitability', 'status': 'measured', 'verdict': 'Cumple al 90%'},
-                        {'characteristic': 'reliability', 'status': 'measured', 'verdict': 'Cobertura de casos negativos OK'},
-                        {'characteristic': 'security', 'status': 'measured', 'verdict': '1 hallazgo medio (password hardcoded)'},
-                        {'characteristic': 'maintainability', 'status': 'measured', 'verdict': 'MI=72.5, aceptable'},
-                        {'characteristic': 'usability', 'status': 'requires_human_judgment', 'verdict': 'Requiere revision UX'},
-                    ],
-                },
-                'traceability_matrix': {
-                    'cmmi_l3_compliant': True,
-                    'requirements_coverage_pct': 92,
-                    'tests_justified_pct': 88,
-                    'orphan_scenarios': ['S-006 (Login con bloqueo)'],
-                    'orphan_tests': [],
-                    'forward': [
-                        {'scenario_id': 'S-001', 'scenario_name': 'Email valido', 'covering_tests': ['test_email_valido'], 'status': 'covered'},
-                        {'scenario_id': 'S-002', 'scenario_name': 'Email invalido', 'covering_tests': ['test_email_invalido_sin_arroba'], 'status': 'covered'},
-                        {'scenario_id': 'S-004', 'scenario_name': 'Password segura', 'covering_tests': ['test_password_fortaleza_valida'], 'status': 'covered'},
-                        {'scenario_id': 'S-005', 'scenario_name': 'Login exitoso', 'covering_tests': ['test_login_exitoso'], 'status': 'covered'},
-                        {'scenario_id': 'S-006', 'scenario_name': 'Login bloqueo', 'covering_tests': ['test_login_bloqueo_tres_intentos'], 'status': 'covered'},
-                        {'scenario_id': 'S-008', 'scenario_name': 'Actualizar avatar', 'covering_tests': ['test_actualizar_avatar_exitoso'], 'status': 'covered'},
-                        {'scenario_id': 'S-009', 'scenario_name': 'Avatar excede', 'covering_tests': ['test_avatar_excede_tamano'], 'status': 'covered'},
-                        {'scenario_id': 'S-010', 'scenario_name': 'Cambiar email', 'covering_tests': ['test_cambiar_email_exitoso'], 'status': 'covered'},
-                    ],
-                },
-                'coverage_report': {
-                    'branch_coverage_pct': 82,
-                    'line_coverage_pct': 91,
-                    'uncovered_lines': [12, 45, 67],
-                    'meets_threshold': True,
-                },
+                'iso_25010_coverage': [
+                    {'characteristic': 'functional_suitability', 'status': 'measured', 'verdict': 'Cumple al 90%'},
+                    {'characteristic': 'reliability', 'status': 'measured', 'verdict': 'Cobertura de casos negativos OK'},
+                    {'characteristic': 'security', 'status': 'measured', 'verdict': '1 hallazgo medio (password hardcoded)'},
+                    {'characteristic': 'maintainability', 'status': 'measured', 'verdict': 'MI=72.5, aceptable'},
+                    {'characteristic': 'usability', 'status': 'requires_human_judgment', 'verdict': 'Requiere revision UX'},
+                ]
+            },
+            'traceability_matrix': {
+                'cmmi_l3_compliant': True, 'requirements_coverage_pct': 92, 'tests_justified_pct': 88,
+                'orphan_scenarios': ['S-006 (Login con bloqueo)'], 'orphan_tests': [],
+                'forward': [
+                    {'scenario_id': 'S-001', 'scenario_name': 'Email valido', 'covering_tests': ['test_email_valido'], 'status': 'covered'},
+                    {'scenario_id': 'S-002', 'scenario_name': 'Email invalido', 'covering_tests': ['test_email_invalido_sin_arroba'], 'status': 'covered'},
+                    {'scenario_id': 'S-004', 'scenario_name': 'Password segura', 'covering_tests': ['test_password_fortaleza_valida'], 'status': 'covered'},
+                    {'scenario_id': 'S-005', 'scenario_name': 'Login exitoso', 'covering_tests': ['test_login_exitoso'], 'status': 'covered'},
+                    {'scenario_id': 'S-006', 'scenario_name': 'Login bloqueo', 'covering_tests': ['test_login_bloqueo_tres_intentos'], 'status': 'covered'},
+                    {'scenario_id': 'S-008', 'scenario_name': 'Actualizar avatar', 'covering_tests': ['test_actualizar_avatar_exitoso'], 'status': 'covered'},
+                    {'scenario_id': 'S-009', 'scenario_name': 'Avatar excede', 'covering_tests': ['test_avatar_excede_tamano'], 'status': 'covered'},
+                    {'scenario_id': 'S-010', 'scenario_name': 'Cambiar email', 'covering_tests': ['test_cambiar_email_exitoso'], 'status': 'covered'},
+                ]
+            },
+            'coverage_report': {
+                'branch_coverage_pct': 82, 'line_coverage_pct': 91,
+                'uncovered_lines': [12, 45, 67], 'meets_threshold': True
             }
-            output_dir = MODULO3_DIR / "output"
-            output_dir.mkdir(exist_ok=True, parents=True)
-            mock_filename = f"contract_c_mock_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            mock_file = output_dir / mock_filename
-            mock_file.write_text(json.dumps(mock_contract_c, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-            return jsonify({'success': True, 'contract_c': mock_contract_c, 'filename': mock_filename, 'output_file': str(mock_file), 'pipeline_run_id': mock_contract_c['pipeline_run_id']})
-        return jsonify({'error': 'ruta desconocida'}), 400
-else:
+        }
+        return contract_c, None
+
+    return None, None
+
+if not MOCK_GROQ_ENABLED:
     from groq import Groq
 
 # Setup paths
@@ -418,7 +293,7 @@ if not GROQ_API_KEY:
 modelo = None
 collection = None
 detector = AmbiguityDetector()
-groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
 
 # Variables globales para Módulo 2
 collection_m2 = None  # KB de patrones de testing Katary
@@ -822,12 +697,17 @@ def home_app_js():
 
 def get_groq_api_key():
     """Obtiene la API Key desde el header o variable de entorno"""
-    # Primero intenta obtenerla del header
     api_key = request.headers.get('X-Groq-API-Key')
     if api_key:
         return api_key
-    # Si no está en el header, usa la variable de entorno
     return GROQ_API_KEY
+
+def is_mock_request():
+    """Retorna True si debe usar modo simulación, según header o variable de entorno"""
+    header_val = request.headers.get('X-Use-Mock')
+    if header_val is not None:
+        return header_val.lower() in ('true', '1', 'yes')
+    return MOCK_GROQ
 
 @app.route('/api/health', methods=['GET'])
 def health():
@@ -955,86 +835,65 @@ def search_similar_stories():
 @app.route('/api/refine-requirements', methods=['POST'])
 def refine_requirements():
     """Refina requerimientos usando el pipeline completo"""
-    if MOCK_GROQ:
-        return _mock_response('refine')
-    # Obtener API Key del request
-    api_key = get_groq_api_key()
-    if not api_key:
-        return jsonify({'error': 'API Key de Groq no configurada'}), 401
-    
-    # Crear cliente Groq con la API Key del request
-    client = Groq(api_key=api_key)
-    
-    init_models()
-    
     data = request.json
     requirement_text = data.get('requirement_text', '')
-    version = data.get('version', 'v4')  # v1, v2, v3, v4
-    analyst_resolutions = data.get('analyst_resolutions', [])
-    project_id = data.get('project_id')  # ID del proyecto seleccionado
-    
+    version = data.get('version', 'v4')
+    project_id = data.get('project_id')
+
     if not requirement_text:
         return jsonify({'error': 'requirement_text es requerido'}), 400
-    
-    try:
-        # 1. Detectar ambigüedades
-        ambiguities = detector.analyze(requirement_text)
-        
-        # 2. Buscar historias similares (RAG)
-        query_emb = modelo.encode([requirement_text]).tolist()
-        resultados = collection.query(
-            query_embeddings=query_emb,
-            n_results=3,
-            include=["documents", "metadatas", "distances"],
-        )
-        
-        historias = []
-        for i in range(len(resultados["ids"][0])):
-            sim = 1 - resultados["distances"][0][i]
-            historias.append({
-                "id": resultados["ids"][0][i],
-                "texto": resultados["documents"][0][i],
-                "criterios": resultados["metadatas"][0][i].get("criterios", ""),
-                "dominio": resultados["metadatas"][0][i].get("dominio", ""),
-                "similitud": sim,
-            })
-        
-        # 3. Construir contexto RAG
-        contexto_kb = "## HISTORIAS DE REFERENCIA DEL SGC DE KATARY\n"
-        contexto_kb += "Usa estas historias como modelo de calidad y profundidad:\n\n"
-        for i, h in enumerate(historias, 1):
-            contexto_kb += f"### Referencia {i} [{h['id']}] (similitud: {h['similitud']:.2f})\n"
-            contexto_kb += f"**Historia:** {h['texto']}\n"
-            contexto_kb += f"**Criterios:** {h['criterios']}\n\n"
-        
-        # 4. Construir sección de ambigüedades según versión
-        full_context = contexto_kb
-        requerimiento_enriquecido = requirement_text
-        
-        if version == 'v4' and analyst_resolutions:
-            # Human-in-the-Loop: usar resoluciones del analista
-            seccion_ambiguedades = detector.build_resolved_prompt_section(analyst_resolutions)
-            if seccion_ambiguedades:
-                full_context += "\n" + seccion_ambiguedades
-            
-            # Enriquecer requerimiento
-            aclaraciones = []
-            for res in analyst_resolutions:
-                if res.get('status') == 'resolved':
-                    aclaraciones.append(f"- \"{res['word']}\": {res['analyst_resolution']}")
-            
-            if aclaraciones:
-                requerimiento_enriquecido = requirement_text + "\n\nACLARACIONES DEL ANALISTA:\n"
-                requerimiento_enriquecido += "\n".join(aclaraciones)
-        
-        elif version == 'v3' and ambiguities:
-            # Detector automático
-            seccion_ambiguedades = detector.build_prompt_section(ambiguities)
-            if seccion_ambiguedades:
-                full_context += "\n" + seccion_ambiguedades
-        
-        # 5. Construir prompt
-        system_prompt = f"""Eres un Analista de Requerimientos Senior de Katary Software (CMMI-DEV L3, 19 años).
+
+    if is_mock_request():
+        resultado_data, timestamp = _get_mock_data('refine', data)
+        tokens_used = 0
+    else:
+        api_key = get_groq_api_key()
+        if not api_key:
+            return jsonify({'error': 'API Key de Groq no configurada'}), 401
+        client = Groq(api_key=api_key)
+        init_models()
+        analyst_resolutions = data.get('analyst_resolutions', [])
+        try:
+            ambiguities = detector.analyze(requirement_text)
+            query_emb = modelo.encode([requirement_text]).tolist()
+            resultados = collection.query(
+                query_embeddings=query_emb, n_results=3,
+                include=["documents", "metadatas", "distances"],
+            )
+            historias = []
+            for i in range(len(resultados["ids"][0])):
+                sim = 1 - resultados["distances"][0][i]
+                historias.append({
+                    "id": resultados["ids"][0][i],
+                    "texto": resultados["documents"][0][i],
+                    "criterios": resultados["metadatas"][0][i].get("criterios", ""),
+                    "dominio": resultados["metadatas"][0][i].get("dominio", ""),
+                    "similitud": sim,
+                })
+            contexto_kb = "## HISTORIAS DE REFERENCIA DEL SGC DE KATARY\n"
+            contexto_kb += "Usa estas historias como modelo de calidad y profundidad:\n\n"
+            for i, h in enumerate(historias, 1):
+                contexto_kb += f"### Referencia {i} [{h['id']}] (similitud: {h['similitud']:.2f})\n"
+                contexto_kb += f"**Historia:** {h['texto']}\n"
+                contexto_kb += f"**Criterios:** {h['criterios']}\n\n"
+            full_context = contexto_kb
+            requerimiento_enriquecido = requirement_text
+            if version == 'v4' and analyst_resolutions:
+                seccion_ambiguedades = detector.build_resolved_prompt_section(analyst_resolutions)
+                if seccion_ambiguedades:
+                    full_context += "\n" + seccion_ambiguedades
+                aclaraciones = []
+                for res in analyst_resolutions:
+                    if res.get('status') == 'resolved':
+                        aclaraciones.append(f"- \"{res['word']}\": {res['analyst_resolution']}")
+                if aclaraciones:
+                    requerimiento_enriquecido = requirement_text + "\n\nACLARACIONES DEL ANALISTA:\n"
+                    requerimiento_enriquecido += "\n".join(aclaraciones)
+            elif version == 'v3' and ambiguities:
+                seccion_ambiguedades = detector.build_prompt_section(ambiguities)
+                if seccion_ambiguedades:
+                    full_context += "\n" + seccion_ambiguedades
+            system_prompt = f"""Eres un Analista de Requerimientos Senior de Katary Software (CMMI-DEV L3, 19 años).
 Transforma requerimientos ambiguos en historias de usuario estructuradas (IEEE 830 / ISO 25010).
 
 {full_context}
@@ -1061,133 +920,106 @@ Responde SOLO con JSON válido, sin texto ni markdown. Estructura:
 4. {"Resolver ambigüedades usando las DECISIONES DEL ANALISTA (assumption_made: false)" if version == 'v4' else "Detectar y resolver ambigüedades con valores concretos en ambiguities_resolved"}
 5. IMPORTANTE: Genera TODAS las historias necesarias para cubrir completamente el requerimiento. Si el requerimiento menciona múltiples funcionalidades (ej: notificaciones, login, registro), crea una historia separada para CADA una
 6. Responde SOLO JSON"""
-
-        user_message = f"""Analiza el siguiente requerimiento y transfórmalo en historias
+            user_message = f"""Analiza el siguiente requerimiento y transfórmalo en historias
 de usuario con el nivel de calidad de las referencias del SGC de Katary.
 
 REQUERIMIENTO:
 {requerimiento_enriquecido}"""
+            respuesta = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message}],
+                temperature=0.3, max_tokens=4000,
+            )
+            respuesta_raw = respuesta.choices[0].message.content
+            text = respuesta_raw.strip()
+            if "```json" in text:
+                text = text.split("```json", 1)[1]
+                text = text.rsplit("```", 1)[0]
+            elif "```" in text:
+                text = text.split("```", 1)[1]
+                text = text.rsplit("```", 1)[0]
+            start = text.find("{")
+            end = text.rfind("}") + 1
+            datos = json.loads(text[start:end])
+            user_stories = []
+            ac_counter = 0
+            for story_data in datos.get("user_stories", []):
+                criteria = []
+                for ac_data in story_data.get("acceptance_criteria", []):
+                    ac_counter += 1
+                    criteria.append(AcceptanceCriterion(
+                        id=ac_data.get("id", f"AC-{ac_counter:03d}"),
+                        description=ac_data.get("description", ""),
+                        given=ac_data.get("given", ""), when=ac_data.get("when", ""),
+                        then=ac_data.get("then", ""),
+                        test_data_examples=ac_data.get("test_data_examples", []),
+                        is_negative_case=ac_data.get("is_negative_case", False),
+                        boundary_values=ac_data.get("boundary_values", []),
+                    ))
+                ambiguities_resolved = []
+                for amb_data in story_data.get("ambiguities_resolved", []):
+                    ambiguities_resolved.append(AmbiguityResolution(
+                        original_text=amb_data.get("original_text", ""),
+                        issue=amb_data.get("issue", ""),
+                        resolution=amb_data.get("resolution", ""),
+                        assumption_made=amb_data.get("assumption_made", False),
+                    ))
+                try:
+                    story_type = StoryType(story_data.get("story_type", "functional"))
+                except ValueError:
+                    story_type = StoryType.FUNCTIONAL
+                try:
+                    priority = Priority(story_data.get("priority", "medium"))
+                except ValueError:
+                    priority = Priority.MEDIUM
+                user_stories.append(UserStory(
+                    id=story_data.get("id", f"US-{len(user_stories) + 1:03d}"),
+                    title=story_data.get("title", "Sin título"),
+                    story_type=story_type, priority=priority,
+                    as_a=story_data.get("as_a", ""), i_want=story_data.get("i_want", ""),
+                    so_that=story_data.get("so_that", ""),
+                    acceptance_criteria=criteria,
+                    business_rules=story_data.get("business_rules", []),
+                    dependencies=story_data.get("dependencies", []),
+                    ui_elements=story_data.get("ui_elements", []),
+                    api_endpoints=story_data.get("api_endpoints", []),
+                    ambiguities_resolved=ambiguities_resolved,
+                ))
+            total_ambiguities = sum(len(s.ambiguities_resolved) for s in user_stories)
+            total_assumptions = sum(sum(1 for a in s.ambiguities_resolved if a.assumption_made) for s in user_stories)
+            resultado = RefinedRequirements(
+                pipeline_run_id=f"webapp-{uuid.uuid4().hex[:8]}",
+                agent_version=version,
+                original_requirements_text=requirement_text,
+                project_context=datos.get("project_context", ""),
+                user_stories=user_stories,
+                total_ambiguities_found=total_ambiguities,
+                total_assumptions_made=total_assumptions,
+            )
+            resultado_data = resultado.model_dump(mode="json")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            tokens_used = respuesta.usage.total_tokens
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': str(e)}), 500
 
-        # 6. Llamar a Groq
-        respuesta = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=0.3,
-            max_tokens=4000,
-        )
-        
-        respuesta_raw = respuesta.choices[0].message.content
-        
-        # 7. Parsear JSON
-        text = respuesta_raw.strip()
-        if "```json" in text:
-            text = text.split("```json", 1)[1]
-            text = text.rsplit("```", 1)[0]
-        elif "```" in text:
-            text = text.split("```", 1)[1]
-            text = text.rsplit("```", 1)[0]
-        
-        start = text.find("{")
-        end = text.rfind("}") + 1
-        datos = json.loads(text[start:end])
-        
-        # 8. Validar con Contract A
-        user_stories = []
-        ac_counter = 0
-        for story_data in datos.get("user_stories", []):
-            criteria = []
-            for ac_data in story_data.get("acceptance_criteria", []):
-                ac_counter += 1
-                criteria.append(AcceptanceCriterion(
-                    id=ac_data.get("id", f"AC-{ac_counter:03d}"),
-                    description=ac_data.get("description", ""),
-                    given=ac_data.get("given", ""),
-                    when=ac_data.get("when", ""),
-                    then=ac_data.get("then", ""),
-                    test_data_examples=ac_data.get("test_data_examples", []),
-                    is_negative_case=ac_data.get("is_negative_case", False),
-                    boundary_values=ac_data.get("boundary_values", []),
-                ))
-            
-            ambiguities_resolved = []
-            for amb_data in story_data.get("ambiguities_resolved", []):
-                ambiguities_resolved.append(AmbiguityResolution(
-                    original_text=amb_data.get("original_text", ""),
-                    issue=amb_data.get("issue", ""),
-                    resolution=amb_data.get("resolution", ""),
-                    assumption_made=amb_data.get("assumption_made", False),
-                ))
-            
-            try:
-                story_type = StoryType(story_data.get("story_type", "functional"))
-            except ValueError:
-                story_type = StoryType.FUNCTIONAL
-            try:
-                priority = Priority(story_data.get("priority", "medium"))
-            except ValueError:
-                priority = Priority.MEDIUM
-            
-            user_stories.append(UserStory(
-                id=story_data.get("id", f"US-{len(user_stories) + 1:03d}"),
-                title=story_data.get("title", "Sin título"),
-                story_type=story_type,
-                priority=priority,
-                as_a=story_data.get("as_a", ""),
-                i_want=story_data.get("i_want", ""),
-                so_that=story_data.get("so_that", ""),
-                acceptance_criteria=criteria,
-                business_rules=story_data.get("business_rules", []),
-                dependencies=story_data.get("dependencies", []),
-                ui_elements=story_data.get("ui_elements", []),
-                api_endpoints=story_data.get("api_endpoints", []),
-                ambiguities_resolved=ambiguities_resolved,
-            ))
-        
-        total_ambiguities = sum(len(s.ambiguities_resolved) for s in user_stories)
-        total_assumptions = sum(
-            sum(1 for a in s.ambiguities_resolved if a.assumption_made)
-            for s in user_stories
-        )
-        
-        resultado = RefinedRequirements(
-            pipeline_run_id=f"webapp-{uuid.uuid4().hex[:8]}",
-            agent_version=version,
-            original_requirements_text=requirement_text,
-            project_context=datos.get("project_context", ""),
-            user_stories=user_stories,
-            total_ambiguities_found=total_ambiguities,
-            total_assumptions_made=total_assumptions,
-        )
-        
-        # 9. Guardar resultado
-        output_dir = MODULO1_DIR / "output"
-        output_dir.mkdir(exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = output_dir / f"webapp_{version}_{timestamp}.json"
-        
-        # Agregar project_id al resultado
-        contract_a_data = resultado.model_dump(mode="json")
-        if project_id:
-            contract_a_data['project_id'] = project_id
-        
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(contract_a_data, f, ensure_ascii=False, indent=2, default=str)
-        
-        return jsonify({
-            'success': True,
-            'result': resultado.model_dump(mode="json"),
-            'output_file': str(output_file),
-            'tokens_used': respuesta.usage.total_tokens,
-            'timestamp': timestamp  # Retornar timestamp para vincular con escenarios
-        })
-    
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+    # Shared save logic (mock + real)
+    output_dir = MODULO1_DIR / "output"
+    output_dir.mkdir(exist_ok=True)
+    output_file = output_dir / f"webapp_{version}_{timestamp}.json"
+    if project_id:
+        resultado_data['project_id'] = project_id
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(resultado_data, f, ensure_ascii=False, indent=2, default=str)
+
+    return jsonify({
+        'success': True,
+        'result': resultado_data,
+        'output_file': str(output_file),
+        'tokens_used': tokens_used,
+        'timestamp': timestamp
+    })
 
 
 # ============================================================
@@ -1197,63 +1029,47 @@ REQUERIMIENTO:
 @app.route('/api/m2/generate-scenarios', methods=['POST'])
 def generate_scenarios_m2():
     """Genera escenarios Gherkin desde Contract A (salida del módulo 1)"""
-    if MOCK_GROQ:
-        return _mock_response('scenarios')
-    # Obtener API Key del request
-    api_key = get_groq_api_key()
-    if not api_key:
-        return jsonify({'error': 'API Key de Groq no configurada'}), 401
-    
-    # Crear cliente Groq con la API Key del request
-    client = Groq(api_key=api_key)
-    
-    try:
-        datos = request.json
-        contract_a_data = datos.get('contract_a')
-        version = datos.get('version', 'v1')
-        contract_a_timestamp = datos.get('contract_a_timestamp')  # Timestamp del Contract A
-        
-        # Validar Contract A
-        contract_a = RefinedRequirements(**contract_a_data)
-        
-        # Generar con V3 (incluye heurísticas EP/BVA/DT + clasificación ISO 25010)
-        test_suite = generar_escenarios_v3_completo(contract_a, client)
-        
-        # Agregar timestamp del Contract A al Contract B para vinculación
-        test_suite['contract_a_timestamp'] = contract_a_timestamp
-        
-        # Heredar project_id del Contract A si existe
-        if 'project_id' in contract_a_data:
-            test_suite['project_id'] = contract_a_data['project_id']
-        
-        # Guardar resultado
-        output_dir = MODULO1_DIR.parent / "qualityai_modulo2" / "output"
-        output_dir.mkdir(exist_ok=True, parents=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # Usar el timestamp del Contract A en el nombre si está disponible
-        if contract_a_timestamp:
-            output_file = output_dir / f"contract_b_{version}_{contract_a_timestamp}.json"
-        else:
-            output_file = output_dir / f"contract_b_{version}_{timestamp}.json"
-        
-        # Serializar
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(test_suite, f, ensure_ascii=False, indent=2, default=str)
-        
-        return jsonify({
-            'success': True,
-            'contract_b': test_suite,
-            'output_file': str(output_file),
-            'filename': output_file.name,  # Nombre del archivo para guardarlo después
-            'version': version
-        })
-    
-    except Exception as e:
-        import traceback
-        return jsonify({
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }), 500
+    datos = request.json
+    contract_a_data = datos.get('contract_a')
+    version = datos.get('version', 'v1')
+    contract_a_timestamp = datos.get('contract_a_timestamp')
+
+    if is_mock_request():
+        test_suite, _ = _get_mock_data('scenarios', datos)
+    else:
+        api_key = get_groq_api_key()
+        if not api_key:
+            return jsonify({'error': 'API Key de Groq no configurada'}), 401
+        client = Groq(api_key=api_key)
+        try:
+            contract_a = RefinedRequirements(**contract_a_data)
+            test_suite = generar_escenarios_v3_completo(contract_a, client)
+        except Exception as e:
+            import traceback
+            return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+    # Shared metadata + save logic
+    test_suite['contract_a_timestamp'] = contract_a_timestamp
+    if contract_a_data and 'project_id' in contract_a_data:
+        test_suite['project_id'] = contract_a_data['project_id']
+
+    output_dir = MODULO1_DIR.parent / "qualityai_modulo2" / "output"
+    output_dir.mkdir(exist_ok=True, parents=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if contract_a_timestamp:
+        output_file = output_dir / f"contract_b_{version}_{contract_a_timestamp}.json"
+    else:
+        output_file = output_dir / f"contract_b_{version}_{timestamp}.json"
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(test_suite, f, ensure_ascii=False, indent=2, default=str)
+
+    return jsonify({
+        'success': True,
+        'contract_b': test_suite,
+        'output_file': str(output_file),
+        'filename': output_file.name,
+        'version': version
+    })
 
 
 def generar_escenarios_v3_completo(contract_a: RefinedRequirements, groq_client):
@@ -1493,45 +1309,45 @@ def generar_escenarios_v3_completo(contract_a: RefinedRequirements, groq_client)
 @app.route('/api/m3/generate-code', methods=['POST'])
 def generate_code_m3():
     """Genera código Python y tests desde Contract B (M3 pipeline V3 completo)"""
-    if MOCK_GROQ:
-        return _mock_response('code')
-    api_key = get_groq_api_key()
-    if not api_key:
-        return jsonify({'error': 'API Key de Groq no configurada'}), 401
+    datos = request.json
+    contract_b_data = datos.get('contract_b')
+    if not contract_b_data:
+        return jsonify({'error': 'contract_b es requerido'}), 400
 
-    try:
-        datos = request.json
-        contract_b_data = datos.get('contract_b')
+    if is_mock_request():
+        resultado, _ = _get_mock_data('code', datos)
+    else:
+        api_key = get_groq_api_key()
+        if not api_key:
+            return jsonify({'error': 'API Key de Groq no configurada'}), 401
+        try:
+            resultado = pipeline_m3_v3_webapp(contract_b_data, api_key)
+        except Exception as e:
+            import traceback
+            return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
-        if not contract_b_data:
-            return jsonify({'error': 'contract_b es requerido'}), 400
+    # Extract contract_a_timestamp from Contract B for cross-module linking
+    contract_a_timestamp = contract_b_data.get('contract_a_timestamp') if isinstance(contract_b_data, dict) else None
+    resultado['contract_a_timestamp'] = contract_a_timestamp
+    resultado['source_contract_b_filename'] = datos.get('contract_b_filename')
 
-        resultado = pipeline_m3_v3_webapp(contract_b_data, api_key)
-
-        # Guardar Contract C
-        output_dir = MODULO3_DIR / "output"
-        output_dir.mkdir(exist_ok=True, parents=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Save with contract_a_timestamp in filename for history linkage
+    output_dir = MODULO3_DIR / "output"
+    output_dir.mkdir(exist_ok=True, parents=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if contract_a_timestamp:
+        output_file = output_dir / f"contract_c_v3_{contract_a_timestamp}.json"
+    else:
         output_file = output_dir / f"contract_c_v3_{timestamp}.json"
-        output_file.write_text(json.dumps(resultado, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    output_file.write_text(json.dumps(resultado, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
 
-        # Guardar también referencia al Contract B origen
-        resultado['source_contract_b_filename'] = datos.get('contract_b_filename')
-
-        return jsonify({
-            'success': True,
-            'contract_c': resultado,
-            'output_file': str(output_file),
-            'filename': output_file.name,
-            'pipeline_run_id': resultado.get('pipeline_run_id'),
-        })
-
-    except Exception as e:
-        import traceback
-        return jsonify({
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }), 500
+    return jsonify({
+        'success': True,
+        'contract_c': resultado,
+        'output_file': str(output_file),
+        'filename': output_file.name,
+        'pipeline_run_id': resultado.get('pipeline_run_id'),
+    })
 
 
 @app.route('/api/m3/review-code', methods=['POST'])
@@ -1629,39 +1445,34 @@ def get_history():
                         'is_signed': is_signed
                     }
         
-        # Construir lookup de M3 por timestamp para vincular con historias
+        # Construir lookup de M3 por contract_a_timestamp (extraído del JSON interno)
+        # para vincular correctamente Contract C con su Contract A original.
         m3_by_timestamp = {}
         output_dir_m3 = MODULO3_DIR / "output"
         if output_dir_m3.exists():
             for file in sorted(output_dir_m3.glob("contract_c_v3_*.json"), reverse=True):
-                parts = file.stem.split('_')
-                if len(parts) >= 5:
-                    date_str = parts[3]
-                    time_str = parts[4]
-                    ts = f"{date_str}_{time_str}"
+                try:
+                    with open(file, 'r', encoding='utf-8') as f:
+                        cc_data = json.load(f)
+                    contract_a_ts = cc_data.get('contract_a_timestamp')
+                    if not contract_a_ts:
+                        continue
                     try:
-                        if date_str and time_str:
-                            dt2 = datetime.strptime(ts, "%Y%m%d_%H%M%S")
-                            formatted = dt2.strftime("%d/%m/%Y %H:%M:%S")
-                        else:
-                            formatted = "Fecha desconocida"
+                        dt2 = datetime.strptime(contract_a_ts, "%Y%m%d_%H%M%S")
+                        formatted = dt2.strftime("%d/%m/%Y %H:%M:%S")
                     except:
-                        formatted = f"{date_str} {time_str}"
-                    review_status = "pending_review"
-                    try:
-                        with open(file, 'r', encoding='utf-8') as f:
-                            cc_data = json.load(f)
-                            review_status = cc_data.get('review', {}).get('review_status', 'pending_review')
-                    except:
-                        pass
-                    m3_by_timestamp[ts] = {
+                        formatted = contract_a_ts
+                    review_status = cc_data.get('review', {}).get('review_status', 'pending_review')
+                    m3_by_timestamp[contract_a_ts] = {
                         'filename': file.name,
                         'date': formatted,
-                        'timestamp': ts,
+                        'timestamp': contract_a_ts,
                         'size': file.stat().st_size,
                         'type': 'generated_code',
                         'review_status': review_status,
                     }
+                except:
+                    pass
 
         # Ahora cargar historias y vincular con escenarios
         history_list = []
@@ -1918,11 +1729,16 @@ def save_projects_db(projects):
     with open(PROJECTS_DB_PATH, 'w', encoding='utf-8') as f:
         json.dump(projects, f, ensure_ascii=False, indent=2, default=str)
 
-def count_project_requirements(project_id):
-    """Cuenta los requerimientos de un proyecto"""
-    count = 0
+def get_project_stats(project_id):
+    """Obtiene estadísticas completas de un proyecto"""
+    stats = {
+        'requirements_count': 0,
+        'stories_count': 0,
+        'scenarios_count': 0,
+        'code_modules_count': 0
+    }
     
-    # Contar Contract A (archivos webapp_v*.json)
+    # Contar Contract A (archivos webapp_v*.json) y sumar sus user stories
     modulo1_output = MODULO1_DIR / "output"
     if modulo1_output.exists():
         for file in modulo1_output.glob("webapp_v*.json"):
@@ -1930,11 +1746,40 @@ def count_project_requirements(project_id):
                 with open(file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     if data.get('project_id') == project_id:
-                        count += 1
+                        stats['requirements_count'] += 1
+                        user_stories = data.get('user_stories', [])
+                        if user_stories:
+                            stats['stories_count'] += len(user_stories)
             except:
                 pass
     
-    return count
+    # Contar Contract B (escenarios de prueba) vinculados a este proyecto
+    modulo2_output = MODULO2_DIR / "output"
+    if modulo2_output.exists():
+        for file in modulo2_output.glob("contract_b_v*.json"):
+            try:
+                with open(file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if data.get('project_id') == project_id:
+                        stats['scenarios_count'] += data.get('total_scenarios', 0)
+            except:
+                pass
+    
+    # Contar Contract C (código generado) vinculados a este proyecto
+    modulo3_output = MODULO3_DIR / "output"
+    if modulo3_output.exists():
+        for file in modulo3_output.glob("contract_c_v*.json"):
+            try:
+                with open(file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if data.get('project_id') == project_id:
+                        modules = data.get('generated_code', [])
+                        if modules:
+                            stats['code_modules_count'] += len(modules)
+            except:
+                pass
+    
+    return stats
 
 @app.route('/api/projects', methods=['GET'])
 def get_projects():
@@ -1942,9 +1787,18 @@ def get_projects():
     try:
         projects = load_projects_db()
         
-        # Agregar conteo de requerimientos a cada proyecto
+        # Agregar estadísticas completas a cada proyecto
         for project in projects:
-            project['requirements_count'] = count_project_requirements(project['id'])
+            project.setdefault('is_favorite', False)
+            stats = get_project_stats(project['id'])
+            project['requirements_count'] = stats['requirements_count']
+            project['stories_count'] = stats['stories_count']
+            project['scenarios_count'] = stats['scenarios_count']
+            project['code_modules_count'] = stats['code_modules_count']
+        
+        # Ordenar: más recientes primero, favoritos al inicio
+        projects.sort(key=lambda p: p.get('created_at', ''), reverse=True)
+        projects.sort(key=lambda p: not p.get('is_favorite', False))
         
         return jsonify({
             'success': True,
@@ -1973,6 +1827,7 @@ def create_project():
             'name': name,
             'description': description,
             'color': color,
+            'is_favorite': False,
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat()
         }
@@ -1999,7 +1854,12 @@ def get_project(project_id):
         if not project:
             return jsonify({'error': 'Proyecto no encontrado'}), 404
         
-        project['requirements_count'] = count_project_requirements(project_id)
+        project.setdefault('is_favorite', False)
+        stats = get_project_stats(project_id)
+        project['requirements_count'] = stats['requirements_count']
+        project['stories_count'] = stats['stories_count']
+        project['scenarios_count'] = stats['scenarios_count']
+        project['code_modules_count'] = stats['code_modules_count']
         
         return jsonify({
             'success': True,
@@ -2026,6 +1886,8 @@ def update_project(project_id):
             project['description'] = data['description'].strip()
         if 'color' in data:
             project['color'] = data['color']
+        if 'is_favorite' in data:
+            project['is_favorite'] = data['is_favorite']
         
         project['updated_at'] = datetime.now().isoformat()
         

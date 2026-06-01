@@ -69,8 +69,7 @@
         }
         
         .tab-active {
-            border-bottom: 3px solid #667eea;
-            color: #667eea;
+            border-bottom: 3px solid;
             font-weight: 600;
         }
         
@@ -201,6 +200,7 @@
                         </button>
                         <button onclick="switchMainTab('history')" id="main-tab-history" class="main-tab-inactive px-6 py-3 rounded-lg font-semibold transition-all">
                             <i class="fas fa-list mr-2"></i>Historias Generadas
+                            <span id="historyBadge" class="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-white bg-opacity-30 text-white hidden">0</span>
                         </button>
                     </div>
                 </div>
@@ -217,16 +217,20 @@
         <!-- Tabs -->
         <div class="bg-white rounded-lg shadow-md mb-6">
             <div class="flex border-b">
-                <button onclick="switchTab('input')" id="tab-input" class="tab-active px-6 py-4 text-gray-700 hover:text-purple-600 transition-colors">
-                    <i class="fas fa-edit mr-2"></i>Entrada de Requerimientos
+                <button onclick="switchTab('input')" id="tab-input" class="tab-active px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent" style="border-bottom-color: #64748b;">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#64748b;color:white;">M0</span>
+                    <i class="fas fa-edit mr-2"></i>Entrada
                 </button>
-                <button onclick="switchTab('ambiguities')" id="tab-ambiguities" class="px-6 py-4 text-gray-700 hover:text-purple-600 transition-colors">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>Análisis de Ambigüedades
+                <button onclick="switchTab('ambiguities')" id="tab-ambiguities" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#6366f1;color:white;">M1</span>
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Ambigüedades
                 </button>
-                <button onclick="switchTab('results')" id="tab-results" class="px-6 py-4 text-gray-700 hover:text-purple-600 transition-colors">
+                <button onclick="switchTab('results')" id="tab-results" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#10b981;color:white;">M2</span>
                     <i class="fas fa-check-circle mr-2"></i>Resultados
                 </button>
-                <button onclick="switchTab('code')" id="tab-code" class="px-6 py-4 text-gray-700 hover:text-purple-600 transition-colors">
+                <button onclick="switchTab('code')" id="tab-code" class="px-6 py-4 text-gray-700 hover:text-gray-900 transition-colors border-b-2 border-transparent">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span>
                     <i class="fas fa-magic mr-2"></i>Generar Código
                 </button>
             </div>
@@ -234,6 +238,10 @@
 
         <!-- Tab Content: Input -->
         <div id="content-input" class="tab-content">
+            <div class="flex items-center space-x-2 mb-4 text-xs">
+                <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#64748b;color:white;">M0</span>
+                <span class="text-gray-500">Ingreso de Requerimientos</span>
+            </div>
             <!-- Hero Section -->
             <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 rounded-2xl shadow-2xl p-8 mb-8 text-white relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32"></div>
@@ -247,7 +255,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
                         <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
                             <div class="flex items-center space-x-3">
-                                <div class="bg-white text-indigo-600 rounded-full w-10 h-10 flex items-center justify-center font-bold">1</div>
+                                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-xs" style="background:#64748b;color:white;">M0</span>
                                 <div>
                                     <div class="font-semibold text-sm">Ingreso</div>
                                     <div class="text-xs text-indigo-100">Requerimiento</div>
@@ -256,28 +264,28 @@
                         </div>
                         <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
                             <div class="flex items-center space-x-3">
-                                <div class="bg-white text-purple-600 rounded-full w-10 h-10 flex items-center justify-center font-bold">2</div>
+                                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-xs" style="background:#6366f1;color:white;">M1</span>
                                 <div>
-                                    <div class="font-semibold text-sm">Análisis</div>
-                                    <div class="text-xs text-indigo-100">Ambigüedades</div>
+                                    <div class="font-semibold text-sm">Analisis</div>
+                                    <div class="text-xs text-indigo-100">Ambiguedades</div>
                                 </div>
                             </div>
                         </div>
                         <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
                             <div class="flex items-center space-x-3">
-                                <div class="bg-white text-indigo-600 rounded-full w-10 h-10 flex items-center justify-center font-bold">3</div>
+                                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-xs" style="background:#10b981;color:white;">M2</span>
                                 <div>
-                                    <div class="font-semibold text-sm">Resolución</div>
-                                    <div class="text-xs text-indigo-100">Validación</div>
+                                    <div class="font-semibold text-sm">Escenarios</div>
+                                    <div class="text-xs text-indigo-100">Prueba</div>
                                 </div>
                             </div>
                         </div>
                         <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
                             <div class="flex items-center space-x-3">
-                                <div class="bg-white text-purple-600 rounded-full w-10 h-10 flex items-center justify-center font-bold">✓</div>
+                                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-xs" style="background:#a855f7;color:white;">M3</span>
                                 <div>
-                                    <div class="font-semibold text-sm">Generación</div>
-                                    <div class="text-xs text-indigo-100">Historias de Usuario</div>
+                                    <div class="font-semibold text-sm">Codigo</div>
+                                    <div class="text-xs text-indigo-100">Tests + Reportes</div>
                                 </div>
                             </div>
                         </div>
@@ -480,6 +488,11 @@
 
         <!-- Tab Content: Ambiguities -->
         <div id="content-ambiguities" class="tab-content hidden">
+            <div class="flex items-center space-x-2 mb-4 text-xs">
+                <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#6366f1;color:white;">M1</span>
+                <span class="text-gray-400">|</span>
+                <span class="text-gray-500">Analisis de Ambiguedades</span>
+            </div>
             <!-- Segmented Control Navigation -->
             <div class="flex items-center justify-between mb-8">
                 <div>
@@ -642,6 +655,13 @@
 
         <!-- Tab Content: Results -->
         <div id="content-results" class="tab-content hidden">
+            <div class="flex items-center space-x-2 mb-4 text-xs">
+                <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#6366f1;color:white;">M1</span>
+                <span class="text-gray-400">+</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#10b981;color:white;">M2</span>
+                <span class="text-gray-400">|</span>
+                <span class="text-gray-500">Historias + Escenarios</span>
+            </div>
             <!-- Segmented Control Navigation -->
             <div class="flex items-center justify-between mb-8">
                 <div>
@@ -650,10 +670,12 @@
                 </div>
                 <div class="inline-flex bg-gray-100 rounded-lg p-1">
                     <button onclick="switchResultsSubTab('stories')" id="subtab-stories" class="px-6 py-2.5 rounded-md font-medium text-sm bg-white text-indigo-600 shadow-sm transition-all">
-                        <i class="fas fa-list mr-2"></i>Historias
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold mr-1" style="background:#6366f1;color:white;">M1</span>
+                        <i class="fas fa-list mr-1"></i>Historias
                     </button>
                     <button onclick="switchResultsSubTab('scenarios')" id="subtab-scenarios" class="px-6 py-2.5 rounded-md font-medium text-sm text-gray-400 cursor-not-allowed transition-all" disabled>
-                        <i class="fas fa-vial mr-2"></i>Escenarios de Prueba
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold mr-1" style="background:#10b981;color:white;">M2</span>
+                        <i class="fas fa-vial mr-1"></i>Escenarios de Prueba
                     </button>
                 </div>
             </div>
@@ -721,6 +743,11 @@
 
         <!-- Tab Content: Código Generado (M3) — inline, no modal -->
         <div id="content-code" class="tab-content hidden">
+            <div class="flex items-center space-x-2 mb-4 text-xs">
+                <span class="inline-flex items-center px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background:#a855f7;color:white;">M3</span>
+                <span class="text-gray-400">|</span>
+                <span class="text-gray-500">Generacion de Codigo</span>
+            </div>
             <div class="bg-white rounded-2xl shadow-md overflow-hidden">
                 <!-- Header -->
                 <div class="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
@@ -755,19 +782,24 @@
                 <div class="px-6 pt-4 border-b border-gray-200 bg-white">
                     <div class="flex space-x-2 overflow-x-auto">
                         <button onclick="switchCodeTab('modules')" id="code-tab-btn-modules" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white transition-all">
-                            <i class="fas fa-file-code mr-2"></i>Código
+                            <span class="inline-flex items-center px-1 py-0.5 rounded text-xs font-bold mr-1" style="background:#a855f7;color:white;">M3</span>
+                            <i class="fas fa-file-code mr-1"></i>Código
                         </button>
                         <button onclick="switchCodeTab('tests')" id="code-tab-btn-tests" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 transition-all">
-                            <i class="fas fa-vial mr-2"></i>Tests
+                            <span class="inline-flex items-center px-1 py-0.5 rounded text-xs font-bold mr-1" style="background:#a855f7;color:white;">M3</span>
+                            <i class="fas fa-vial mr-1"></i>Tests
                         </button>
                         <button onclick="switchCodeTab('quality')" id="code-tab-btn-quality" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 transition-all">
-                            <i class="fas fa-chart-bar mr-2"></i>Quality Report
+                            <span class="inline-flex items-center px-1 py-0.5 rounded text-xs font-bold mr-1" style="background:#a855f7;color:white;">M3</span>
+                            <i class="fas fa-chart-bar mr-1"></i>Quality Report
                         </button>
                         <button onclick="switchCodeTab('traceability')" id="code-tab-btn-traceability" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 transition-all">
-                            <i class="fas fa-project-diagram mr-2"></i>Trazabilidad
+                            <span class="inline-flex items-center px-1 py-0.5 rounded text-xs font-bold mr-1" style="background:#a855f7;color:white;">M3</span>
+                            <i class="fas fa-project-diagram mr-1"></i>Trazabilidad
                         </button>
                         <button onclick="switchCodeTab('coverage')" id="code-tab-btn-coverage" class="code-tab-btn px-5 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 transition-all">
-                            <i class="fas fa-shield-alt mr-2"></i>Cobertura
+                            <span class="inline-flex items-center px-1 py-0.5 rounded text-xs font-bold mr-1" style="background:#a855f7;color:white;">M3</span>
+                            <i class="fas fa-shield-alt mr-1"></i>Cobertura
                         </button>
                     </div>
                 </div>
@@ -1004,6 +1036,20 @@
                         <input type="checkbox" id="showApiKey" class="w-4 h-4 text-purple-600">
                         <span class="text-sm text-gray-600">Mostrar API Key</span>
                     </label>
+                </div>
+                <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-robot text-gray-400"></i>
+                            <span class="text-sm text-gray-700 font-medium">Usar modo simulación</span>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="useMockToggle" class="sr-only">
+                            <div class="w-10 h-5 bg-gray-300 rounded-full shadow-inner transition-colors" id="mockToggleBg"></div>
+                            <div class="dot absolute w-4 h-4 bg-white rounded-full shadow top-0.5 left-0.5 transition-transform" id="mockToggleDot"></div>
+                        </div>
+                    </label>
+                    <p class="text-xs text-gray-400 mt-1 ml-6">Sin llamadas a Groq, usa datos de prueba</p>
                 </div>
                 <button onclick="saveApiKey()" class="w-full px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md">
                     Guardar

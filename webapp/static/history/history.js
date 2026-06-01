@@ -77,12 +77,12 @@ async function loadHistory() {
             historyData = data.history;
             const m3HistoryData = data.m3_history || [];
             
-            // Actualizar contador en el modal
-            document.getElementById('count-stories').textContent = totalCount;
-            
-            // Actualizar contadores de los badges (incluye M3)
+            // Calcular total (incluye M3)
             const m3Count = (data.m3_history || []).length;
             const totalCount = (data.total_stories || 0) + m3Count;
+            
+            // Actualizar contador en el modal
+            document.getElementById('count-stories').textContent = totalCount;
             
             // Badge del FAB
             const badgeElement = document.getElementById('historyTotalCount');
@@ -157,12 +157,12 @@ function displayHistory(stories, m3History = []) {
                 
                 // Boton M3: continuar o ver codigo segun estado
                 if (story.has_code) {
-                    viewButton += ` <button onclick="viewContractC('${story.code.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Ver codigo generado">
-                        <i class="fas fa-code mr-2"></i>Ver Codigo Generado
+                    viewButton += ` <button onclick="viewContractC('${story.code.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Generar reportes combinados M2 + M3">
+                        <i class="fas fa-file-alt mr-2"></i>Generar Reportes M2 + M3
                     </button>`;
                 } else {
-                    viewButton += ` <button onclick="continueWithCode('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Continuar a generar codigo (Modulo 3)">
-                        <i class="fas fa-forward mr-2"></i>Continuar a Generar Codigo
+                    viewButton += ` <button onclick="continueWithCode('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Continuar con el proceso en el Modulo 3">
+                        <i class="fas fa-forward mr-2"></i>Continuar con el Proceso
                     </button>`;
                 }
                 
@@ -529,7 +529,7 @@ async function completeWithScenarios(storiesFilename) {
 }
 
 async function continueWithCode(storiesFilename, scenariosFilename) {
-    showLoading('Preparando modulo de generacion de codigo...');
+    showLoading('Cargando datos del proceso...');
     
     try {
         const [resB, resA] = await Promise.all([
@@ -561,21 +561,24 @@ async function continueWithCode(storiesFilename, scenariosFilename) {
                 currentContractBFilename = scenariosFilename;
             }
             
-            // displayScenariosInTab setea window.currentContractB y activa tab de codigo
+            // displayScenariosInTab setea window.currentContractB
             if (typeof displayScenariosInTab === 'function') {
                 displayScenariosInTab(dataB.data);
             }
             
-            // Cambiar al tab de codigo
+            // Ir a Resultados (M2) para que el usuario decida el siguiente paso
             if (typeof switchTab === 'function') {
-                switchTab('code');
+                switchTab('results');
+            }
+            if (typeof switchResultsSubTab === 'function') {
+                switchResultsSubTab('scenarios');
             }
         } else {
             alert('Error al cargar archivos: M2=' + (dataB.error || 'ok') + ' M1=' + (dataA.error || 'ok'));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al preparar generacion de codigo: ' + error.message);
+        alert('Error al cargar datos: ' + error.message);
         hideLoading();
     }
 }
@@ -626,11 +629,32 @@ async function viewContractC(filename) {
             // Cerrar el modal de historial
             closeHistoryModal();
             
-            // Mostrar el código en el modal de resultados
+            // Ir al generador
+            if (typeof switchMainTab === 'function') {
+                switchMainTab('generator');
+            }
+            
+            // Configurar Contract A si existe en los datos
+            if (data.data.contract_a && typeof displayResults === 'function') {
+                displayResults(data.data.contract_a);
+            }
+            
+            // Configurar Contract B si existe
+            if (data.data.contract_b && typeof displayScenariosInTab === 'function') {
+                displayScenariosInTab(data.data.contract_b);
+            }
+            
+            // Mostrar el código
+            if (typeof restoreCodeTabLayout === 'function') {
+                restoreCodeTabLayout();
+            }
             if (typeof showCodeResults === 'function') {
                 showCodeResults(data.data);
-            } else {
-                alert('El módulo de visualización de código no está disponible. Abre la página principal e intenta de nuevo.');
+            }
+            
+            // Cambiar al tab de código
+            if (typeof switchTab === 'function') {
+                switchTab('code');
             }
         } else {
             alert('Error al cargar código: ' + data.error);

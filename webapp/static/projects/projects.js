@@ -48,6 +48,9 @@ function renderProjects(projects) {
     container.innerHTML = projects.map(project => {
         const colorClasses = getColorClasses(project.color || 'indigo');
         const requirementsCount = project.requirements_count || 0;
+        const storiesCount = project.stories_count || 0;
+        const scenariosCount = project.scenarios_count || 0;
+        const codeModulesCount = project.code_modules_count || 0;
         const createdDate = new Date(project.created_at).toLocaleDateString('es-ES', {
             year: 'numeric',
             month: 'long',
@@ -80,15 +83,36 @@ function renderProjects(projects) {
                                 </span>
                             </div>
                             <div class="flex items-center space-x-2">
-                                <i class="fas fa-clock ${colorClasses.text}"></i>
+                                <i class="fas fa-book ${colorClasses.text}"></i>
                                 <span class="text-sm text-gray-600">
-                                    Última actualización: ${new Date(project.updated_at).toLocaleDateString('es-ES')}
+                                    <strong>${storiesCount}</strong> historia${storiesCount !== 1 ? 's' : ''}
                                 </span>
                             </div>
+                            ${scenariosCount > 0 ? `
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-vial ${colorClasses.text}"></i>
+                                <span class="text-sm text-gray-600">
+                                    <strong>${scenariosCount}</strong> escenario${scenariosCount !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            ` : ''}
+                            ${codeModulesCount > 0 ? `
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-code ${colorClasses.text}"></i>
+                                <span class="text-sm text-gray-600">
+                                    <strong>${codeModulesCount}</strong> módulo${codeModulesCount !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            ` : ''}
                         </div>
                     </div>
                     
                     <div class="flex items-center space-x-2">
+                        <button onclick="toggleFavorite('${project.id}', ${project.is_favorite})"
+                                class="p-2 transition-colors ${project.is_favorite ? 'text-amber-400 hover:text-amber-500' : 'text-gray-300 hover:text-amber-400'}"
+                                title="${project.is_favorite ? 'Quitar de favoritos' : 'Marcar como favorito'}">
+                            <i class="${project.is_favorite ? 'fas' : 'far'} fa-star"></i>
+                        </button>
                         <button onclick="editProject('${project.id}')" 
                                 class="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
                                 title="Editar proyecto">
@@ -239,6 +263,26 @@ function selectProject(projectId) {
     
     // Redirigir a la página principal de la WebApp
     window.location.href = '../home/index.html';
+}
+
+// ============================================================
+// Toggle Favorite
+// ============================================================
+
+async function toggleFavorite(projectId, currentState) {
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_favorite: !currentState })
+        });
+        const data = await response.json();
+        if (data.success) {
+            loadProjects();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
 }
 
 // ============================================================

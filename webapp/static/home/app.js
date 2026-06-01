@@ -13,6 +13,10 @@ let selectedProjectData = null; // Datos del proyecto seleccionado
 // Verificar que haya un proyecto seleccionado al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     checkProjectSelection();
+    const mockToggle = document.getElementById('useMockToggle');
+    if (mockToggle) {
+        mockToggle.addEventListener('change', () => updateMockToggleUI(mockToggle.checked));
+    }
 });
 
 async function checkProjectSelection() {
@@ -105,10 +109,18 @@ function loadHistoryInPage() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Actualizar contador
+                // Actualizar contador en página de historial
                 const countElement = document.getElementById('count-stories-page');
                 if (countElement) {
                     countElement.textContent = data.total_stories || 0;
+                }
+                
+                // Actualizar badge en el tab principal
+                const badge = document.getElementById('historyBadge');
+                if (badge) {
+                    const total = data.total_stories || 0;
+                    badge.textContent = total;
+                    badge.classList.toggle('hidden', total === 0);
                 }
                 
                 // Renderizar el historial
@@ -154,12 +166,12 @@ function renderHistoryInPage(stories) {
                 
                 // Boton M3: continuar o ver codigo segun estado
                 if (story.has_code) {
-                    viewButton = `<button onclick="viewContractC('${story.code.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Ver codigo generado">
-                        <i class="fas fa-code mr-2"></i>Ver Codigo Generado
+                    viewButton = `<button onclick="viewContractC('${story.code.filename}')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all" title="Generar reportes combinados M2 + M3">
+                        <i class="fas fa-file-alt mr-2"></i>Generar Reportes M2 + M3
                     </button>`;
                 } else {
-                    viewButton = `<button onclick="continueWithCode('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Continuar a generar codigo (Modulo 3)">
-                        <i class="fas fa-forward mr-2"></i>Continuar a Generar Codigo
+                    viewButton = `<button onclick="continueWithCode('${story.filename}', '${story.scenarios.filename}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all" title="Continuar con el proceso en el Modulo 3">
+                        <i class="fas fa-forward mr-2"></i>Continuar con el Proceso
                     </button>`;
                 }
             } else {
@@ -339,32 +351,34 @@ function updateStoriesStats() {
 }
 
 function switchResultsSubTab(subtabName) {
-    // Ocultar todos los sub-tabs
     document.querySelectorAll('.results-subtab-content').forEach(tab => {
         tab.classList.add('hidden');
     });
     
-    // Mostrar el sub-tab seleccionado
     document.getElementById(`results-subtab-${subtabName}`).classList.remove('hidden');
     
-    // Si es el sub-tab de escenarios, actualizar estadísticas
     if (subtabName === 'scenarios') {
         updateStoriesStats();
     }
     
-    // Actualizar estilos de los botones (segmented control)
+    const colors = { stories: '#6366f1', scenarios: '#10b981' };
+    const color = colors[subtabName] || '#6366f1';
+    
     document.querySelectorAll('[id^="subtab-"]').forEach(btn => {
-        // Solo actualizar botones de resultados
         if (btn.id === 'subtab-stories' || btn.id === 'subtab-scenarios') {
-            btn.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+            btn.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600');
             btn.classList.add('text-gray-600', 'hover:text-gray-800');
+            btn.style.color = '';
+            btn.style.backgroundColor = '';
+            btn.style.boxShadow = '';
         }
     });
     
     const activeBtn = document.getElementById(`subtab-${subtabName}`);
     if (activeBtn) {
         activeBtn.classList.remove('text-gray-600', 'hover:text-gray-800');
-        activeBtn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+        activeBtn.classList.add('bg-white', 'shadow-sm');
+        activeBtn.style.color = color;
     }
 }
 
@@ -430,16 +444,19 @@ function updateCharCount() {
 
 function getApiHeaders(additionalHeaders = {}) {
     const apiKey = localStorage.getItem('groq_api_key');
+    const useMock = localStorage.getItem('use_mock') === 'true';
     return {
         'Content-Type': 'application/json',
         'X-Groq-API-Key': apiKey || '',
+        'X-Use-Mock': useMock ? 'true' : 'false',
         ...additionalHeaders
     };
 }
 
 function checkApiKey() {
     const apiKey = localStorage.getItem('groq_api_key');
-    if (!apiKey) {
+    const useMock = localStorage.getItem('use_mock') === 'true';
+    if (!apiKey && !useMock) {
         document.getElementById('apiKeyModal').classList.remove('hidden');
     }
 }
@@ -449,7 +466,25 @@ function openApiKeyModal() {
     if (currentKey) {
         document.getElementById('apiKeyInput').value = currentKey;
     }
+    // Restaurar estado del toggle mock
+    const useMock = localStorage.getItem('use_mock') === 'true';
+    document.getElementById('useMockToggle').checked = useMock;
+    updateMockToggleUI(useMock);
     document.getElementById('apiKeyModal').classList.remove('hidden');
+}
+
+function updateMockToggleUI(enabled) {
+    const bg = document.getElementById('mockToggleBg');
+    const dot = document.getElementById('mockToggleDot');
+    if (enabled) {
+        bg.classList.remove('bg-gray-300');
+        bg.classList.add('bg-purple-600');
+        dot.style.transform = 'translateX(20px)';
+    } else {
+        bg.classList.remove('bg-purple-600');
+        bg.classList.add('bg-gray-300');
+        dot.style.transform = 'translateX(0)';
+    }
 }
 
 function setupApiKeyToggle() {
@@ -463,25 +498,28 @@ function setupApiKeyToggle() {
 
 function saveApiKey() {
     const apiKey = document.getElementById('apiKeyInput').value.trim();
+    const useMock = document.getElementById('useMockToggle').checked;
     
-    if (!apiKey) {
-        alert('Por favor ingresa una API Key válida');
+    if (!apiKey && !useMock) {
+        alert('Ingresa una API Key o activa el modo simulación');
         return;
     }
     
-    if (!apiKey.startsWith('gsk_')) {
+    if (apiKey && !apiKey.startsWith('gsk_')) {
         alert('La API Key de Groq debe comenzar con "gsk_"');
         return;
     }
     
     // Guardar en localStorage
     localStorage.setItem('groq_api_key', apiKey);
+    localStorage.setItem('use_mock', useMock);
     
     // Cerrar modal
     document.getElementById('apiKeyModal').classList.add('hidden');
     
     // Mostrar confirmación
-    alert('✅ API Key guardada correctamente. Ya puedes usar QualityAI.');
+    const msg = useMock ? '✅ Modo simulación activado' : '✅ API Key guardada correctamente. Ya puedes usar QualityAI.';
+    alert(msg);
     
     // Recargar health check
     checkHealth();
@@ -513,13 +551,26 @@ async function checkHealth() {
 }
 
 function switchTab(tab) {
-    // Update tab buttons
+    const moduleColors = {
+        input: '#64748b',
+        ambiguities: '#6366f1',
+        results: '#10b981',
+        code: '#a855f7'
+    };
+    const color = moduleColors[tab] || '#667eea';
+
     document.querySelectorAll('[id^="tab-"]').forEach(btn => {
         btn.classList.remove('tab-active');
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.color = '';
+        btn.style.fontWeight = '';
     });
-    document.getElementById(`tab-${tab}`).classList.add('tab-active');
-    
-    // Update content
+    const activeBtn = document.getElementById(`tab-${tab}`);
+    activeBtn.classList.add('tab-active');
+    activeBtn.style.borderBottomColor = color;
+    activeBtn.style.color = color;
+    activeBtn.style.fontWeight = '600';
+
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
     });
@@ -549,9 +600,22 @@ function switchTab(tab) {
         }
     }
 
-    // Si se cambia al tab de Código, mostrar estado sin generar automaticamente
+    // Si se cambia al tab de Código, actualizar estado
     if (tab === 'code') {
         updateCodeTabState();
+    }
+    
+    // Actualizar texto del tab de Código según estado
+    updateCodeTabLabel();
+}
+
+function updateCodeTabLabel() {
+    const tabBtn = document.getElementById('tab-code');
+    if (!tabBtn) return;
+    if (currentContractC) {
+        tabBtn.innerHTML = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span><i class="fas fa-file-alt mr-2"></i>Ver Reporte';
+    } else {
+        tabBtn.innerHTML = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider mr-2" style="background:#a855f7;color:white;">M3</span><i class="fas fa-magic mr-2"></i>Generar Código';
     }
 }
 
@@ -3208,6 +3272,7 @@ async function generateCode() {
             // Restaurar el layout completo del tab (updateCodeTabState lo reemplazo)
             restoreCodeTabLayout();
             showCodeResults(data.contract_c);
+            updateCodeTabLabel();
             // Asegurar que el tab de código esté activo y el generador visible (incluso desde historial)
             document.querySelectorAll('.main-content-section').forEach(s => s.classList.add('hidden'));
             document.getElementById('main-content-generator').classList.remove('hidden');
@@ -3343,13 +3408,20 @@ function restoreCodeTabLayout() {
                 <div id="code-tab-traceability" class="code-tab-content hidden"></div>
                 <div id="code-tab-coverage" class="code-tab-content hidden"></div>
             </div>
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <button onclick="generateCode()" class="px-5 py-2.5 border-2 border-purple-300 text-purple-700 rounded-lg font-semibold hover:bg-purple-50 transition-all">
-                    <i class="fas fa-sync-alt mr-2"></i>Regenerar
-                </button>
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <button onclick="generateCode()" class="px-5 py-2.5 border-2 border-purple-300 text-purple-700 rounded-lg font-semibold hover:bg-purple-50 transition-all">
+                        <i class="fas fa-sync-alt mr-2"></i>Regenerar
+                    </button>
+                    ${window.currentContractB ? `
+                    <button onclick="generateCombinedReport()" class="px-5 py-2.5 border-2 border-emerald-400 text-emerald-700 rounded-lg font-semibold hover:bg-emerald-50 transition-all">
+                        <i class="fas fa-file-alt mr-2"></i>Generar Reporte (M2+M3)
+                    </button>
+                    ` : ''}
+                </div>
                 <div class="flex space-x-3">
                     <button onclick="downloadCodeReport()" class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all shadow-md">
-                        <i class="fas fa-file-pdf mr-2"></i>Descargar Reporte
+                        <i class="fas fa-file-pdf mr-2"></i>Descargar Reporte M3
                     </button>
                     <button id="startCodeReviewBtn" onclick="startCodeReview()" class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md">
                         <i class="fas fa-clipboard-check mr-2"></i>Revisar Código Manualmente
@@ -3381,13 +3453,13 @@ function switchCodeTab(tabName) {
     document.getElementById(`code-tab-${tabName}`).classList.remove('hidden');
 
     document.querySelectorAll('.code-tab-btn').forEach(btn => {
-        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.remove('bg-purple-600', 'text-white');
         btn.classList.add('bg-gray-100', 'text-gray-700');
     });
     const activeBtn = document.getElementById(`code-tab-btn-${tabName}`);
     if (activeBtn) {
         activeBtn.classList.remove('bg-gray-100', 'text-gray-700');
-        activeBtn.classList.add('bg-indigo-600', 'text-white');
+        activeBtn.classList.add('bg-purple-600', 'text-white');
     }
 }
 
@@ -4113,6 +4185,129 @@ function downloadReportAsPdf() {
     printWindow.document.write('table{width:100%;border-collapse:collapse;}');
     printWindow.document.write('td,th{border:1px solid #d1d5db;padding:6px;text-align:left;font-size:12px;}');
     printWindow.document.write('th{background:#f3f4f6;font-weight:600;}');
+    printWindow.document.write('pre{background:#f9fafb;padding:6px;font-size:11px;overflow-x:auto;border:1px solid #e5e7eb;border-radius:4px;font-family:monospace;white-space:pre-wrap;}');
+    printWindow.document.write('</style></head><body>');
+    printWindow.document.write('<div class="p-8">');
+    printWindow.document.write(html);
+    printWindow.document.write('</div>');
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.onload = function() {
+        printWindow.print();
+    };
+}
+
+function generateCombinedReport() {
+    if (!currentContractC) {
+        alert('No hay código generado para generar el reporte');
+        return;
+    }
+    if (!window.currentContractB) {
+        alert('No hay escenarios de prueba para generar el reporte combinado');
+        return;
+    }
+
+    const cc = currentContractC;
+    const cb = window.currentContractB;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    const totalStories = cb.features?.length || 0;
+    const totalCriteria = cb.coverage_matrix?.length || cb.total_scenarios || 0;
+
+    let html = `
+    <div class="space-y-6">
+        <div class="text-right text-sm text-gray-600 mb-4">Generado el ${dateStr}</div>
+
+        <div class="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 rounded-xl text-white">
+            <h2 class="text-2xl font-bold mb-2">Reporte Completo M2+M3</h2>
+            <p class="text-purple-100">Escenarios de Prueba + Código Generado + Quality Report</p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white border border-gray-200 p-4 rounded-lg text-center">
+                <div class="text-3xl font-bold text-purple-600">${totalStories}</div>
+                <div class="text-sm text-gray-600">Features (M2)</div>
+            </div>
+            <div class="bg-white border border-gray-200 p-4 rounded-lg text-center">
+                <div class="text-3xl font-bold text-green-600">${cb.total_scenarios || 0}</div>
+                <div class="text-sm text-gray-600">Escenarios (M2)</div>
+            </div>
+            <div class="bg-white border border-gray-200 p-4 rounded-lg text-center">
+                <div class="text-3xl font-bold text-blue-600">${cc.total_modules || 0}</div>
+                <div class="text-sm text-gray-600">Módulos Código (M3)</div>
+            </div>
+            <div class="bg-white border border-gray-200 p-4 rounded-lg text-center">
+                <div class="text-3xl font-bold text-orange-600">${cc.total_tests || 0}</div>
+                <div class="text-sm text-gray-600">Tests Generados (M3)</div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 p-6 rounded-xl">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Escenarios de Prueba Generados (M2)</h3>
+            ${cb.features && cb.features.length ? cb.features.map(f => `
+            <div class="mb-4 border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-indigo-600 text-white px-4 py-2 font-bold">${f.name || 'Feature'}</div>
+                <div class="p-3 space-y-2">
+                    ${f.scenarios && f.scenarios.length ? f.scenarios.map(s => `
+                    <div class="border-l-4 border-green-500 bg-green-50 p-3 rounded">
+                        <strong>${s.name || 'Escenario'}</strong>
+                        <div class="text-xs text-gray-600 mt-1">${s.description || ''}</div>
+                    </div>
+                    `).join('') : '<p class="text-gray-500">Sin escenarios</p>'}
+                </div>
+            </div>
+            `).join('') : '<p class="text-gray-500">No hay features disponibles</p>'}
+        </div>
+
+        <div class="bg-white border border-gray-200 p-6 rounded-xl">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Código Generado (M3)</h3>
+            ${cc.generated_code && cc.generated_code.length ? cc.generated_code.map(mod => `
+            <div class="mb-3 border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-gray-800 text-white px-4 py-2 font-mono font-bold">${escapeHtml(mod.filename)}</div>
+                <pre class="p-3 text-xs font-mono overflow-x-auto max-h-48 overflow-y-auto bg-gray-50">${escapeHtml(mod.source_code)}</pre>
+                ${mod.description ? `<div class="px-4 py-2 text-sm text-gray-600 border-t border-gray-200">${mod.description}</div>` : ''}
+            </div>
+            `).join('') : '<p class="text-gray-500">No se generaron módulos de código</p>'}
+        </div>
+
+        <div class="bg-white border border-gray-200 p-6 rounded-xl">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Tests Generados (M3)</h3>
+            ${cc.generated_tests && cc.generated_tests.length ? cc.generated_tests.map(t => `
+            <div class="mb-3 border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-green-800 text-white px-4 py-2 font-mono font-bold">${escapeHtml(t.test_name)}</div>
+                <pre class="p-3 text-xs font-mono overflow-x-auto max-h-48 overflow-y-auto bg-gray-50">${escapeHtml(t.source_code)}</pre>
+            </div>
+            `).join('') : '<p class="text-gray-500">No se generaron tests</p>'}
+        </div>
+
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-end space-x-3">
+            <button onclick="downloadCombinedReportAsPdf()" class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all shadow-md">
+                <i class="fas fa-file-pdf mr-2"></i>Descargar PDF
+            </button>
+            <button onclick="closeReportModal()" class="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all">
+                <i class="fas fa-times mr-2"></i>Cerrar
+            </button>
+        </div>
+    </div>
+    `;
+
+    // Show in modal
+    document.getElementById('reportModal').classList.remove('hidden');
+    document.getElementById('reportModalContent').innerHTML = html;
+}
+
+function downloadCombinedReportAsPdf() {
+    const printContent = document.getElementById('reportModalContent');
+    if (!printContent) return;
+
+    let html = printContent.innerHTML;
+
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Reporte Completo M2+M3</title>');
+    printWindow.document.write('<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">');
+    printWindow.document.write('<style>@media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }');
+    printWindow.document.write('body{font-family:Arial,sans-serif;color:#333;padding:40px;}');
     printWindow.document.write('pre{background:#f9fafb;padding:6px;font-size:11px;overflow-x:auto;border:1px solid #e5e7eb;border-radius:4px;font-family:monospace;white-space:pre-wrap;}');
     printWindow.document.write('</style></head><body>');
     printWindow.document.write('<div class="p-8">');

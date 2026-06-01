@@ -5,7 +5,8 @@
     "description": "Aplicación gym",
     "color": "amber",
     "created_at": "2026-06-01T10:41:59.395077",
-    "updated_at": "2026-06-01T10:41:59.395084"
+    "updated_at": "2026-06-01T15:39:25.191552",
+    "is_favorite": false
   },
   {
     "id": "3aa7d10e-2c6e-4460-9450-13d467154ce6",
@@ -13,6 +14,16 @@
     "description": "Sistema de votaciones",
     "color": "rose",
     "created_at": "2026-06-01T11:51:54.872303",
-    "updated_at": "2026-06-01T11:51:54.872314"
+    "updated_at": "2026-06-01T15:32:12.850174",
+    "is_favorite": false
+  },
+  {
+    "id": "86f93c04-d387-42d4-be88-b5a06c0b605b",
+    "name": "Test",
+    "description": "test",
+    "color": "green",
+    "created_at": "2026-06-01T14:50:33.406973",
+    "updated_at": "2026-06-01T15:32:19.032877",
+    "is_favorite": false
   }
 ]
