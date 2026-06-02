@@ -256,8 +256,7 @@ def _get_mock_data(ruta, req_data=None):
 
     return None, None
 
-if not MOCK_GROQ_ENABLED:
-    from groq import Groq
+# Groq se importa como _RealGroq en línea 21 (incondicional)
 
 # Setup paths
 import sys
@@ -525,7 +524,7 @@ def pipeline_m3_v3_webapp(contract_b_dict: dict, api_key: str) -> dict:
 
     # Convertir Contract B del webapp a GherkinTestSuite
     contract_b = webapp_contract_b_to_gherkin_test_suite(contract_b_dict)
-    client = Groq(api_key=api_key)
+    client = _RealGroq(api_key=api_key)
 
     todos_modulos = []
     todos_tests = []
@@ -850,7 +849,7 @@ def refine_requirements():
         api_key = get_groq_api_key()
         if not api_key:
             return jsonify({'error': 'API Key de Groq no configurada'}), 401
-        client = Groq(api_key=api_key)
+        client = _RealGroq(api_key=api_key)
         init_models()
         analyst_resolutions = data.get('analyst_resolutions', [])
         try:
@@ -1040,7 +1039,7 @@ def generate_scenarios_m2():
         api_key = get_groq_api_key()
         if not api_key:
             return jsonify({'error': 'API Key de Groq no configurada'}), 401
-        client = Groq(api_key=api_key)
+        client = _RealGroq(api_key=api_key)
         try:
             contract_a = RefinedRequirements(**contract_a_data)
             test_suite = generar_escenarios_v3_completo(contract_a, client)
